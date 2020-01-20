@@ -4,6 +4,7 @@ import telebot
 from telebot import types
 from log_handler import LogHandler
 import notifier as nt
+from emoji import emojize
 
 
 bot = telebot.TeleBot(config.TOKEN)
@@ -207,8 +208,8 @@ def show_main_menu(message, user_role, edit=False):
 
             inline_kb = types.InlineKeyboardMarkup(row_width=1)
 
-            confirm_requests = types.InlineKeyboardButton(text='Підтвердження заявок', callback_data='confirm_requests')
-            stats = types.InlineKeyboardButton(text='Статистика', callback_data='adm_stats')
+            confirm_requests = types.InlineKeyboardButton(text=f'{emojize(":white_check_mark:", use_aliases=True)}Підтвердження заявок', callback_data='confirm_requests')
+            stats = types.InlineKeyboardButton(text=f'{emojize(":chart_with_upwards_trend:", use_aliases=True)}Статистика', callback_data='adm_stats')
 
             inline_kb.add(confirm_requests, stats)
             logger.write_to_log('displayed admin panel', message.chat.id)
