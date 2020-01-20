@@ -3,11 +3,14 @@ import model as md
 import telebot
 from telebot import types
 from log_handler import LogHandler
+import notifier as nt
 
-logger = LogHandler()
 
 bot = telebot.TeleBot(config.TOKEN)
-model = md.Model(bot, logger)
+
+notifier = nt.Notifier(bot)
+logger = LogHandler(notifier)
+model = md.Model(bot, logger, notifier)
 
 
 def init_controller():
@@ -18,6 +21,7 @@ def init_controller():
     try:
         logger.write_to_log('controller initialised', 'sys')
         bot.polling(none_stop=True)
+
     except Exception as err:
         logger.write_to_log('exception', 'sys')
         logger.write_to_err_log(f'exception - {err}', 'sys')

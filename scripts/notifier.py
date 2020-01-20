@@ -1,15 +1,21 @@
+import config
+from emoji import emojize
 
 
 class Notifier:
-    def __init__(self, bot, logger):
+    def __init__(self, bot):
         self.bot = bot
-        self.logger = logger
-        logger.write_to_log('notifier initialised', 'sys')
 
     def notify_manager_about_qualification_request(self):
-        #TODO:implement qualification request notifier
-        print()
+        # TODO:implement qualification request notifier
+        pass
 
     def notify_manager_about_role_request(self):
-        #TODO:implement role request notifier
-        print()
+        # TODO:implement role request notifier
+        pass
+
+    def notify_about_exception(self, err):
+        msg = f'{(emojize(":x:", use_aliases=True) * 7)}\nException\n' \
+              f'{format(err)}\n' \
+              f'{(emojize(":x:", use_aliases=True) * 7)}'
+        self.bot.send_message(chat_id=config.DEVELOPER_ID, text=msg)

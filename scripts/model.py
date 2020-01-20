@@ -1,10 +1,9 @@
 import db_handler as db
 import user_menu
-import notifier as nt
 
 
 class Model:
-    def __init__(self, bot, logger):
+    def __init__(self, bot, logger, notifier):
         """
         Initialization of Model class
         :param bot: bot instance for passing into notifier class
@@ -14,7 +13,7 @@ class Model:
             self.db_handler = db.DbHandler()
             self.bot = bot
             self.logger = logger
-            self.notifier = nt.Notifier(bot, logger)
+            self.notifier = notifier
             logger.write_to_log('model initialised', 'sys')
         except Exception as err:
             self.logger.write_to_log('exception', 'model')

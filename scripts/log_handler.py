@@ -16,7 +16,8 @@ def counter():
 
 
 class LogHandler:
-    def __init__(self):
+    def __init__(self, notifier):
+        self.notifier = notifier
         log_path = f'{config.WORKING_DIR}/log/log'
         err_log_path = f'{config.WORKING_DIR}/log/err_log'
 
@@ -45,16 +46,13 @@ class LogHandler:
 
     def write_to_err_log(self, msg, bot, user_id='sys'):
         """
-
         :param msg: message needed to be written into error log
         :param bot: bot instance to notify developer about exception
         :param user_id: id of user to write to err log
         :return: None
         """
+        self.notifier.notify_about_exception(msg)
 
-        # TODO: notify abput exception
-
-        #notifier.notify_about_exception(msg, bot)
         print(f'exception {format(msg)}')
         message = self.generate_string_to_write(msg, user_id)
 
