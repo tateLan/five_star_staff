@@ -168,3 +168,17 @@ class DbHandler:
         q = f"INSERT INTO five_star_db.qualification_confirmation (staff_id, requested_qualification, confirmed) VALUES ({user_id}, {quali_id}, 0);"
         cursor.execute(q)
         self.connect.commit()
+
+    def get_user_role_by_id(self, user_id):
+        """
+        Returns information about user role
+        :param user_id: user telegram id
+        :return: set of role id and role name
+        """
+        q = f'select roles.id_role, roles.name_role from staff left join roles on staff.staff_role = roles.id_role where id = {user_id}'
+
+        curs = self.connect.cursor()
+
+        curs.execute(q)
+
+        return curs.fetchone()

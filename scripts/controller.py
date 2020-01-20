@@ -54,6 +54,9 @@ def handle_start(message):
         logger.write_to_log('exception', 'controller')
         logger.write_to_err_log(f'exception - {err}', 'controller')
 
+@bot.message_handler(commands=['menu'])
+def handle_menu(message):
+    show_main_menu(message=message, edit=False)
 
 def register_user_name(message):
     """
@@ -152,18 +155,60 @@ def callback_handler(call):
                                           message_id=call.message.message_id,
                                           reply_markup=None)
 
+            inline_kb = types.InlineKeyboardMarkup(row_width=1)
+
+            inline_kb.add(types.InlineKeyboardButton('Перейти до головного меню', callback_data='main_menu'))
+
             bot.edit_message_text(chat_id=call.message.chat.id,
                                   message_id=call.message.message_id,
                                   text='Дані було успішно внесено, '
-                                       'після затвердження ви отримаєте сповіщення :)')
-        elif call.data == 'another':
+                                       'після затвердження ви отримаєте сповіщення :)',
+                                  reply_markup=inline_kb)
+        elif call.data == 'main_menu':
+            show_main_menu(message=call.message, edit=True)
+        elif call.data == 'confirm_requests':
+            pass
+        elif call.data == 'adm_stats':
             pass
     except Exception as err:
         logger.write_to_log('exception', 'controller')
         logger.write_to_err_log(f'exception - {err}', 'controller')
 
 
-    # TODO: main menu
+def classify_role(func):
+    """
+    Decorator for classification user role
+    :param func: function which displays menu
+    :return: wrapped function
+    """
+    def inner_func(message, edit=False):
+        role_id, role_name = model.get_user_role_by_id(message.chat.id)
+        func(message=message, user_role=role_name, edit=edit)
+    return inner_func
+
+
+@classify_role
+def show_main_menu(message, user_role, edit=False):
+    try:
+        if user_role == 'адміністратор':
+            msg = 'Ви є адміністратором даного боту. Вам доступні наступні дії:'
+
+            inline_kb = types.InlineKeyboardMarkup(row_width=1)
+
+            confirm_requests = types.InlineKeyboardButton(text='Підтвердження заявок', callback_data='confirm_requests')
+            stats = types.InlineKeyboardButton(text='Статистика', callback_data='adm_stats')
+
+            inline_kb.add(confirm_requests, stats)
+
+            bot.send_message(chat_id=message.chat.id, text=msg, reply_markup=inline_kb)
+
+
+
+
+    except Exception as err:
+        logger.write_to_log('exception', 'controller')
+        logger.write_to_err_log(f'exception - {err}', 'controller')
+
 
 @bot.message_handler(content_types=['text'])
 def echo_msg(message):

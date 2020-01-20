@@ -182,3 +182,19 @@ class Model:
         except Exception as err:
             self.logger.write_to_log('exception', 'model')
             self.logger.write_to_err_log(f'exception - {err}', 'model')
+
+    def get_user_role_by_id(self, user_id):
+        """
+        Returns information about user role
+        :param user_id: user telegram id
+        :return: set of role id and role name
+        """
+        try:
+            role = self.db_handler.get_user_role_by_id(user_id)
+
+            self.logger.write_to_log('got user role information', user_id)
+
+            return role
+        except Exception as err:
+            self.logger.write_to_log('exception', 'model')
+            self.logger.write_to_err_log(f'exception - {err}', 'model')
