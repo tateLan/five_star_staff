@@ -189,8 +189,20 @@ def classify_role(func):
 
 @classify_role
 def show_main_menu(message, user_role, edit=False):
+    """
+    Function shows main menu depends of user role
+    :param message: message instance
+    :param user_role: user role passed via decorator
+    :param edit: flag which says if message needed to edit
+    :return: None
+    """
     try:
+        inline_kb = None
+        msg = ''
+
         if user_role == 'адміністратор':
+            logger.write_to_log('requested admin panel', message.chat.id)
+
             msg = 'Ви є адміністратором даного боту. Вам доступні наступні дії:'
 
             inline_kb = types.InlineKeyboardMarkup(row_width=1)
@@ -199,10 +211,25 @@ def show_main_menu(message, user_role, edit=False):
             stats = types.InlineKeyboardButton(text='Статистика', callback_data='adm_stats')
 
             inline_kb.add(confirm_requests, stats)
+            logger.write_to_log('displayed admin panel', message.chat.id)
+        elif user_role == 'менеджер':
+            logger.write_to_log('requested manager menu', message.chat.id)
+            # TODO: manager menu
+            logger.write_to_log('displayed manager menu', message.chat.id)
+        elif user_role == 'офіціант':
+            logger.write_to_log('requested waiter menu', message.chat.id)
+            # TODO: waiter menu
+            logger.write_to_log('displayed waiter menu', message.chat.id)
 
+        if edit:
+            bot.edit_message_text(chat_id=message.chat.id,
+                                  message_id=message.message_id,
+                                  text=msg)
+            bot.edit_message_reply_markup(chat_id=message.chat.id,
+                                          message_id=message.message_id,
+                                          reply_markup=inline_kb)
+        else:
             bot.send_message(chat_id=message.chat.id, text=msg, reply_markup=inline_kb)
-
-
 
 
     except Exception as err:
