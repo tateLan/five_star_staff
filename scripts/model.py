@@ -1,4 +1,5 @@
 import db_handler as db
+from datetime import datetime
 import user_menu
 
 
@@ -110,6 +111,21 @@ class Model:
             roles = self.db_handler.get_roles_list()
             self.logger.write_to_log('roles got', 'model')
             return roles
+        except Exception as err:
+            self.logger.write_to_log('exception', 'model')
+            self.logger.write_to_err_log(f'exception - {err}', 'model')
+
+    def get_role_by_id(self, role_id):
+        """
+        returns role information by role id
+        :param role_id:role id
+        :return: role information
+        """
+        try:
+            role = self.db_handler.get_role_by_id(role_id)
+
+            self.logger.write_to_log('got role by id', 'model')
+            return role
         except Exception as err:
             self.logger.write_to_log('exception', 'model')
             self.logger.write_to_err_log(f'exception - {err}', 'model')
@@ -241,6 +257,73 @@ class Model:
 
             self.logger.write_to_log('got qualification request status', user_id)
             return status
+        except Exception as err:
+            self.logger.write_to_log('exception', 'model')
+            self.logger.write_to_err_log(f'exception - {err}', 'model')
+
+    def get_unaccepted_role_requests(self):
+        """
+        Returns role pending requests
+        :return: pending role requests
+        """
+        try:
+            role_requests = self.db_handler.get_unaccepted_role_requests()
+
+            self.logger.write_to_log('role requests got', 'model')
+
+            return role_requests
+
+        except Exception as err:
+            self.logger.write_to_log('exception', 'model')
+            self.logger.write_to_err_log(f'exception - {err}', 'model')
+
+    def get_unaccepted_qualification_requests(self):
+        """
+        Returns qualification pending requests
+        :return: pending qualification requests
+        """
+        try:
+            role_requests = self.db_handler.get_unaccepted_qualification_requests()
+
+            self.logger.write_to_log('qualification requests got', 'model')
+
+            return role_requests
+
+        except Exception as err:
+            self.logger.write_to_log('exception', 'model')
+            self.logger.write_to_err_log(f'exception - {err}', 'model')
+
+    def get_user_name_by_id(self, user_id):
+        """
+        Returns user full name by telegram id
+        :param user_id:  user telegram id
+        :return: set of first name, middle name and last name of user
+        """
+        try:
+            res = self.db_handler.get_user_name_by_id(user_id)
+
+            self.logger.write_to_log('user full name got', user_id)
+
+            return res
+        except Exception as err:
+            self.logger.write_to_log('exception', 'model')
+            self.logger.write_to_err_log(f'exception - {err}', 'model')
+
+    def accept_role_request(self, request_id, admin_id):
+        """
+        Accepts role request with specified id
+        :param request_id: id of request
+        :param admin_id: telegram id of user which accepted (manager or admin)
+        :return: None
+        """
+        try:
+            now = datetime.now()
+
+            mysql_date = f'{now.year}-{now.month}-{now.day} {now.time().hour}:{now.time().minute}:00'
+
+            self.db_handler.accept_role_request(request_id=request_id, admin_id=admin_id, date=mysql_date)
+
+            self.logger.write_to_log(f'role request id:{request_id} confirmed', admin_id)
         except Exception as err:
             self.logger.write_to_log('exception', 'model')
             self.logger.write_to_err_log(f'exception - {err}', 'model')

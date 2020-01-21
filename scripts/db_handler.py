@@ -127,6 +127,14 @@ class DbHandler:
 
         return res
 
+    def get_role_by_id(self, role_id):
+        q = f'select * from roles where id_role = {role_id};'
+
+        curs = self.connect.cursor()
+        curs.execute(q)
+
+        return curs.fetchone()
+
     def get_not_set_role(self):
         cursor = self.connect.cursor()
         q = "select id_role from roles where name_role = 'не підтверджено';"
@@ -236,3 +244,31 @@ class DbHandler:
         curs.execute(q)
 
         return curs.fetchone()
+
+    def get_user_name_by_id(self, user_id):
+        """
+        returns users full name by telegram id
+        :param user_id: user telegram id
+        :return: set of sirst name, middle name, last name
+        """
+        q = f'select first_name, middle_name, last_name from staff where id = {user_id};'
+
+        curs = self.connect.cursor()
+        curs.execute(q)
+
+        return curs.fetchone()
+
+    def accept_role_request(self, request_id, admin_id, date):
+        """
+        updates table 'role_requests'. confirms requested role
+        :param request_id: id of request
+        :param admin_id: telegram id of user whicj confirms (admin of manager)
+        :param date: date of confirmation
+        :return: None
+        """
+        q = f"update role_confirmation set date_confirmed = '{date}', confirmed_by = {admin_id}, confirmed = 1 where id = {request_id};"
+
+        curs = self.connect.cursor()
+        curs.execute(q)
+
+        self.connect.commit()
