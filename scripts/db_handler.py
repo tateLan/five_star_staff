@@ -208,3 +208,31 @@ class DbHandler:
         curs.execute(q)
 
         return curs.fetchall()
+
+    def get_role_request_status(self, user_id):
+        """
+        Returns user's role request status
+        :param user_id: user telegram id
+        :return: status of request
+        """
+        self.connect.commit()
+        q = f'select confirmed from role_confirmation where staff_id = {user_id};'
+
+        curs = self.connect.cursor()
+        curs.execute(q)
+
+        return curs.fetchone()
+
+    def get_qualification_request_status(self, user_id):
+        """
+        Returns user's qualification request status
+        :param user_id: user telegram id
+        :return: status of request
+        """
+        self.connect.commit()
+        q = f'select confirmed from qualification_confirmation where staff_id = {user_id}'
+
+        curs = self.connect.cursor()
+        curs.execute(q)
+
+        return curs.fetchone()

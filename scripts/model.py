@@ -208,7 +208,39 @@ class Model:
             role_requests = self.db_handler.get_unaccepted_role_requests()
             quali_requests = self.db_handler.get_unaccepted_qualification_requests()
 
+            self.logger.write_to_log('count of unaccepted requests got', 'model')
+
             return role_requests.__len__() + quali_requests.__len__()
+        except Exception as err:
+            self.logger.write_to_log('exception', 'model')
+            self.logger.write_to_err_log(f'exception - {err}', 'model')
+
+    def get_role_request_status(self, user_id):
+        """
+        Returns role request status
+        :param user_id: user telegram id
+        :return: Status
+        """
+        try:
+            status = self.db_handler.get_role_request_status(user_id)
+
+            self.logger.write_to_log('got role request status', user_id)
+            return status
+        except Exception as err:
+            self.logger.write_to_log('exception', 'model')
+            self.logger.write_to_err_log(f'exception - {err}', 'model')
+
+    def get_qualification_request_status(self, user_id):
+        """
+        Returns qualification request status
+        :param user_id: user telegram id
+        :return: Status
+        """
+        try:
+            status = self.db_handler.get_qualification_request_status(user_id)
+
+            self.logger.write_to_log('got qualification request status', user_id)
+            return status
         except Exception as err:
             self.logger.write_to_log('exception', 'model')
             self.logger.write_to_err_log(f'exception - {err}', 'model')

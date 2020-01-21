@@ -202,7 +202,24 @@ def show_main_menu(message, user_role, edit=False):
         inline_kb = None
         msg = ''
 
-        if user_role == 'адміністратор':
+        if user_role == 'не підтверджено':
+            logger.write_to_log('requested not accepted menu', message.chat.id)
+
+            role_status = model.get_role_request_status(message.chat.id)[0]
+            quali_status = model.get_qualification_request_status(message.chat.id)[0]
+
+            msg = f'Статус ваших заявок:\n' \
+                  f'{"-"*20}\n' \
+                  f'{emojize(" :negative_squared_cross_mark:", use_aliases=True) if role_status == 0 else emojize(":white_check_mark:", use_aliases=True)}Заявка на посаду: {"підтверджена" if role_status == 1 else "не підтверджена"}\n' \
+                  f'{emojize(" :negative_squared_cross_mark:", use_aliases=True) if quali_status == 0 else emojize(":white_check_mark:", use_aliases=True)}Заявка на кваліфікацію: {"підтверджена" if quali_status == 1 else "не підтверджена"}\n' \
+                  f'{"-"*20}\n' \
+                  f' Щойно вони будуть оброблені, ви будете повідомлені. Ви можете оновити свій статус кнопкою нижче'
+
+            inline_kb = types.InlineKeyboardMarkup(row_width=1)
+            inline_kb.add(types.InlineKeyboardButton(text='Оновити статус', callback_data='main_menu'))
+
+            logger.write_to_log('displayed not accepted menu', message.chat.id)
+        elif user_role == 'адміністратор':
             logger.write_to_log('requested admin panel', message.chat.id)
 
             pending_requests = model.get_unaccepted_request_count()
