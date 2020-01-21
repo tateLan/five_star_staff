@@ -272,3 +272,31 @@ class DbHandler:
         curs.execute(q)
 
         self.connect.commit()
+
+    def update_staff_role(self, user_id, role_id):
+        """
+        Updates user role in staff table
+        :param user_id:  user telegram id
+        :param role_id: role id
+        :return:  None
+        """
+        q = f'update staff set staff_role = {role_id} where id = {user_id};'
+
+        curs = self.connect.cursor()
+        curs.execute(q)
+
+        self.connect.commit()
+
+    def get_role_id_from_role_request(self, request):
+        """
+        Returns role id, requested by user
+        :param request: id of role request
+        :return: role id
+        """
+        q = f'select requested_role from role_confirmation where staff_id = {request};'
+
+        curs = self.connect.cursor()
+        curs.execute(q)
+
+        return curs.fetchone()
+

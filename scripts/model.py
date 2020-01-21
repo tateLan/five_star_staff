@@ -1,6 +1,6 @@
 import db_handler as db
 from datetime import datetime
-import user_menu
+import sys
 
 
 class Model:
@@ -17,8 +17,10 @@ class Model:
             self.notifier = notifier
             logger.write_to_log('model initialised', 'sys')
         except Exception as err:
+            meth_name = sys._getframe().f_code.co_name
+
             self.logger.write_to_log('exception', 'model')
-            self.logger.write_to_err_log(f'exception - {err}', 'model')
+            self.logger.write_to_err_log(f'exception in method {meth_name} - {err}', 'model')
 
     def get_start_command_response(self, user_id):
         """
@@ -44,8 +46,10 @@ class Model:
             return reply
 
         except Exception as err:
+            meth_name = sys._getframe().f_code.co_name
+
             self.logger.write_to_log('exception', 'model')
-            self.logger.write_to_err_log(f'exception - {err}', 'model')
+            self.logger.write_to_err_log(f'exception in method {meth_name} - {err}', 'model')
 
     def register_user_telegram_id(self, user_id):
         """
@@ -57,8 +61,10 @@ class Model:
             self.db_handler.set_user_telegram_id(user_id)
             self.logger.write_to_log('user telegram id added to db', user_id)
         except Exception as err:
+            meth_name = sys._getframe().f_code.co_name
+
             self.logger.write_to_log('exception', 'model')
-            self.logger.write_to_err_log(f'exception - {err}', 'model')
+            self.logger.write_to_err_log(f'exception in method {meth_name} - {err}', 'model')
 
     def register_user_first_name(self, message):
         """
@@ -71,8 +77,10 @@ class Model:
 
             self.logger.write_to_log('user first name added to db', message.chat.id)
         except Exception as err:
+            meth_name = sys._getframe().f_code.co_name
+
             self.logger.write_to_log('exception', 'model')
-            self.logger.write_to_err_log(f'exception - {err}', 'model')
+            self.logger.write_to_err_log(f'exception in method {meth_name} - {err}', 'model')
 
     def register_user_middle_name(self, message):
         """
@@ -85,8 +93,10 @@ class Model:
 
             self.logger.write_to_log('user middle name added to db', message.chat.id)
         except Exception as err:
+            meth_name = sys._getframe().f_code.co_name
+
             self.logger.write_to_log('exception', 'model')
-            self.logger.write_to_err_log(f'exception - {err}', 'model')
+            self.logger.write_to_err_log(f'exception in method {meth_name} - {err}', 'model')
 
     def register_user_last_name(self, message):
         """
@@ -99,8 +109,10 @@ class Model:
 
             self.logger.write_to_log('user last name added to db', message.chat.id)
         except Exception as err:
+            meth_name = sys._getframe().f_code.co_name
+
             self.logger.write_to_log('exception', 'model')
-            self.logger.write_to_err_log(f'exception - {err}', 'model')
+            self.logger.write_to_err_log(f'exception in method {meth_name} - {err}', 'model')
 
     def get_roles_list(self):
         """
@@ -112,8 +124,10 @@ class Model:
             self.logger.write_to_log('roles got', 'model')
             return roles
         except Exception as err:
+            meth_name = sys._getframe().f_code.co_name
+
             self.logger.write_to_log('exception', 'model')
-            self.logger.write_to_err_log(f'exception - {err}', 'model')
+            self.logger.write_to_err_log(f'exception in method {meth_name} - {err}', 'model')
 
     def get_role_by_id(self, role_id):
         """
@@ -127,8 +141,10 @@ class Model:
             self.logger.write_to_log('got role by id', 'model')
             return role
         except Exception as err:
+            meth_name = sys._getframe().f_code.co_name
+
             self.logger.write_to_log('exception', 'model')
-            self.logger.write_to_err_log(f'exception - {err}', 'model')
+            self.logger.write_to_err_log(f'exception in method {meth_name} - {err}', 'model')
 
     def register_role_request(self, role, user_id):
         """
@@ -155,8 +171,10 @@ class Model:
             self.notifier.notify_manager_about_role_request()
             self.logger.write_to_log('manager notified about role request', user_id)
         except Exception as err:
+            meth_name = sys._getframe().f_code.co_name
+
             self.logger.write_to_log('exception', 'model')
-            self.logger.write_to_err_log(f'exception - {err}', 'model')
+            self.logger.write_to_err_log(f'exception in method {meth_name} - {err}', 'model')
 
     def get_qualification_list(self):
         """
@@ -168,8 +186,10 @@ class Model:
             self.logger.write_to_log('qualifications got', 'model')
             return qualifications
         except Exception as err:
+            meth_name = sys._getframe().f_code.co_name
+
             self.logger.write_to_log('exception', 'model')
-            self.logger.write_to_err_log(f'exception - {err}', 'model')
+            self.logger.write_to_err_log(f'exception in method {meth_name} - {err}', 'model')
 
     def register_qualification_request(self, quali, user_id):
         """
@@ -196,8 +216,10 @@ class Model:
             self.notifier.notify_manager_about_qualification_request()
             self.logger.write_to_log('manager notified about qualification request', user_id)
         except Exception as err:
+            meth_name = sys._getframe().f_code.co_name
+
             self.logger.write_to_log('exception', 'model')
-            self.logger.write_to_err_log(f'exception - {err}', 'model')
+            self.logger.write_to_err_log(f'exception in method {meth_name} - {err}', 'model')
 
     def get_user_role_by_id(self, user_id):
         """
@@ -212,8 +234,10 @@ class Model:
 
             return role
         except Exception as err:
+            meth_name = sys._getframe().f_code.co_name
+
             self.logger.write_to_log('exception', 'model')
-            self.logger.write_to_err_log(f'exception - {err}', 'model')
+            self.logger.write_to_err_log(f'exception in method {meth_name} - {err}', 'model')
 
     def get_unaccepted_request_count(self):
         """
@@ -228,8 +252,10 @@ class Model:
 
             return role_requests.__len__() + quali_requests.__len__()
         except Exception as err:
+            meth_name = sys._getframe().f_code.co_name
+
             self.logger.write_to_log('exception', 'model')
-            self.logger.write_to_err_log(f'exception - {err}', 'model')
+            self.logger.write_to_err_log(f'exception in method {meth_name} - {err}', 'model')
 
     def get_role_request_status(self, user_id):
         """
@@ -243,8 +269,10 @@ class Model:
             self.logger.write_to_log('got role request status', user_id)
             return status
         except Exception as err:
+            meth_name = sys._getframe().f_code.co_name
+
             self.logger.write_to_log('exception', 'model')
-            self.logger.write_to_err_log(f'exception - {err}', 'model')
+            self.logger.write_to_err_log(f'exception in method {meth_name} - {err}', 'model')
 
     def get_qualification_request_status(self, user_id):
         """
@@ -258,24 +286,28 @@ class Model:
             self.logger.write_to_log('got qualification request status', user_id)
             return status
         except Exception as err:
+            meth_name = sys._getframe().f_code.co_name
+
             self.logger.write_to_log('exception', 'model')
-            self.logger.write_to_err_log(f'exception - {err}', 'model')
+            self.logger.write_to_err_log(f'exception in method {meth_name} - {err}', 'model')
 
     def get_unaccepted_role_requests(self):
         """
-        Returns role pending requests
-        :return: pending role requests
+        Returns role pending request
+        :return: pending role request
         """
         try:
-            role_requests = self.db_handler.get_unaccepted_role_requests()
+            role_request = self.db_handler.get_unaccepted_role_requests()
 
             self.logger.write_to_log('role requests got', 'model')
 
-            return role_requests
+            return role_request
 
         except Exception as err:
+            meth_name = sys._getframe().f_code.co_name
+
             self.logger.write_to_log('exception', 'model')
-            self.logger.write_to_err_log(f'exception - {err}', 'model')
+            self.logger.write_to_err_log(f'exception in method {meth_name} - {err}', 'model')
 
     def get_unaccepted_qualification_requests(self):
         """
@@ -290,8 +322,10 @@ class Model:
             return role_requests
 
         except Exception as err:
+            meth_name = sys._getframe().f_code.co_name
+
             self.logger.write_to_log('exception', 'model')
-            self.logger.write_to_err_log(f'exception - {err}', 'model')
+            self.logger.write_to_err_log(f'exception in method {meth_name} - {err}', 'model')
 
     def get_user_name_by_id(self, user_id):
         """
@@ -306,24 +340,31 @@ class Model:
 
             return res
         except Exception as err:
-            self.logger.write_to_log('exception', 'model')
-            self.logger.write_to_err_log(f'exception - {err}', 'model')
+            meth_name = sys._getframe().f_code.co_name
 
-    def accept_role_request(self, request_id, admin_id):
+            self.logger.write_to_log('exception', 'model')
+            self.logger.write_to_err_log(f'exception in method {meth_name} - {err}', 'model')
+
+    def accept_role_request(self, request_id, admin_id, id_user):
         """
         Accepts role request with specified id
         :param request_id: id of request
         :param admin_id: telegram id of user which accepted (manager or admin)
+        :param id_user: telegram id of user which needed to be updated
         :return: None
         """
         try:
             now = datetime.now()
-
+            role_id = self.db_handler.get_role_id_from_role_request(id_user)[0]
             mysql_date = f'{now.year}-{now.month}-{now.day} {now.time().hour}:{now.time().minute}:00'
 
             self.db_handler.accept_role_request(request_id=request_id, admin_id=admin_id, date=mysql_date)
+            self.db_handler.update_staff_role(user_id=id_user, role_id=role_id)
+            self.notifier.notify_user_about_accepted_request(user_id=id_user, request_type='заявка на посаду')
 
             self.logger.write_to_log(f'role request id:{request_id} confirmed', admin_id)
         except Exception as err:
+            meth_name = sys._getframe().f_code.co_name
+
             self.logger.write_to_log('exception', 'model')
-            self.logger.write_to_err_log(f'exception - {err}', 'model')
+            self.logger.write_to_err_log(f'exception in method {meth_name} - {err}', 'model')

@@ -19,3 +19,7 @@ class Notifier:
               f'{format(err)}\n' \
               f'{(emojize(":x:", use_aliases=True) * 7)}'
         self.bot.send_message(chat_id=config.DEVELOPER_ID, text=msg)
+
+    def notify_user_about_accepted_request(self, user_id, request_type):
+        # TODO: implement user notification
+        pass
