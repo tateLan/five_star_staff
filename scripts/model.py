@@ -30,7 +30,7 @@ class Model:
             res = self.db_handler.get_user_by_telegram_id(user_id)
             reply = ''
 
-            if res is '0':
+            if res == '0':
                 reply = 'Вітаю! Ви ще не зареєстровані в нашій системі, будь ласка пройдіть реєстрацію'
             else:
                 reply = 'Вітаємо з поверненням, '
@@ -195,6 +195,20 @@ class Model:
             self.logger.write_to_log('got user role information', user_id)
 
             return role
+        except Exception as err:
+            self.logger.write_to_log('exception', 'model')
+            self.logger.write_to_err_log(f'exception - {err}', 'model')
+
+    def get_unaccepted_request_count(self):
+        """
+        Method returns number of unaccepted requests
+        :return: number of requests
+        """
+        try:
+            role_requests = self.db_handler.get_unaccepted_role_requests()
+            quali_requests = self.db_handler.get_unaccepted_qualification_requests()
+
+            return role_requests.__len__() + quali_requests.__len__()
         except Exception as err:
             self.logger.write_to_log('exception', 'model')
             self.logger.write_to_err_log(f'exception - {err}', 'model')

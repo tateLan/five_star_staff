@@ -182,3 +182,29 @@ class DbHandler:
         curs.execute(q)
 
         return curs.fetchone()
+
+    def get_unaccepted_role_requests(self):
+        """
+        Returns unaccepted role requests
+        :return: unaccepted requests
+        """
+        self.connect.commit()
+        q = 'select * from role_confirmation where confirmed = 0'
+
+        curs = self.connect.cursor()
+        curs.execute(q)
+
+        return curs.fetchall()
+
+    def get_unaccepted_qualification_requests(self):
+        """
+        Returns unaccepted qualification requests
+        :return: unaccepted qualification requests
+        """
+        self.connect.commit()
+        q = 'select * from qualification_confirmation where confirmed = 0'
+
+        curs = self.connect.cursor()
+        curs.execute(q)
+
+        return curs.fetchall()

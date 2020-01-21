@@ -59,6 +59,7 @@ def handle_start(message):
 def handle_menu(message):
     show_main_menu(message=message, edit=False)
 
+
 def register_user_name(message):
     """
     Writes user first name
@@ -204,7 +205,12 @@ def show_main_menu(message, user_role, edit=False):
         if user_role == 'адміністратор':
             logger.write_to_log('requested admin panel', message.chat.id)
 
-            msg = 'Ви є адміністратором даного боту. Вам доступні наступні дії:'
+            pending_requests = model.get_unaccepted_request_count()
+            requests_str = f'{emojize(":negative_squared_cross_mark:", use_aliases=True) if pending_requests > 0 else emojize(" :white_check_mark:", use_aliases=True)} Не підтверджених заявок{(": " + str(pending_requests)) if pending_requests > 0 else " немає"}'
+            msg = f'Панель адміністратора\n' \
+                  f'{"-"*20}\n' \
+                  f'{ requests_str }\n' \
+                  f'{"-"*20}'
 
             inline_kb = types.InlineKeyboardMarkup(row_width=1)
 
