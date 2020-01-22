@@ -188,13 +188,14 @@ class DbHandler:
 
         return self.curs.fetchone()
 
+    @check_session_time_alive
     def get_qualification_by_id(self, *args):
         """
         Returns qualification by its id
         :param args: id of qualification
         :return: qualification instance
         """
-        id = args[0]
+        id = args[0][0]
         q = f'select * from qualification where id = {id};'
 
         self.curs.execute(q)
@@ -395,3 +396,16 @@ class DbHandler:
         self.curs.execute(q)
 
         return self.curs.fetchone()
+
+    @check_session_time_alive
+    def modify_role_request(self, *args):
+        """
+        Updates user requested role for applying for another role
+        :param args: request id, role id
+        :return: None
+        """
+        request_id, role_id = args[0]
+        q = f'update role_confirmation set requested_role = {role_id} where id = {request_id};'
+
+        self.curs.execute(q)
+        self.connect.commit()

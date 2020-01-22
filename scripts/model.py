@@ -387,3 +387,29 @@ class Model:
             self.logger.write_to_log('exception', 'model')
             self.logger.write_to_err_log(f'exception in method {meth_name} - {err}', 'model')
 
+    def change_role_request(self, request_id, role_id, admin_id, user_id):
+        """
+        Changes user requested role and confirms it
+        :param request_id: id of role request
+        :param role_id: id of role needed to change
+        :param admin_id: telegram id of user (admin)
+        :param user_id: telegram id of user (staff)
+        :return: None
+        """
+        try:
+            now = datetime.now()
+            mysql_date = f'{now.year}-{now.month}-{now.day} {now.time().hour}:{now.time().minute}:00'
+
+            self.db_handler.modify_role_request(request_id, role_id)
+            self.db_handler.accept_role_request(request_id, admin_id, mysql_date)
+            self.logger.write_to_log(f'role request id:{request_id} confirmed', admin_id)
+            self.db_handler.update_staff_role(user_id, role_id)
+            self.logger.write_to_log(f'user data update in staff', user_id)
+            self.notifier.notify_user_about_accepted_request(user_id=user_id, request_type='заявка на посаду')
+
+        except Exception as err:
+            meth_name = sys._getframe().f_code.co_name
+
+            self.logger.write_to_log('exception', 'model')
+            self.logger.write_to_err_log(f'exception in method {meth_name} - {err}', 'model')
+

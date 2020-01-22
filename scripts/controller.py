@@ -286,6 +286,104 @@ def accept_role_request(call):
         logger.write_to_err_log(f'exception in method {meth_name} - {err}', 'controller')
 
 
+@bot.callback_query_handler(func=lambda call: call.data == 'decline_role_request')
+def decline_role_request_handler(call):
+    """
+    Method shows user options to change requested role to some another
+    :param call: callback instance
+    :return: None
+    """
+    try:
+        logger.write_to_log('entered into role requests changing menu', call.message.chat.id)
+
+        role_request = model.get_unaccepted_role_requests()
+
+        req_id, staff_id, requested_role_id, date_placed, _, _, confirmed = role_request[0]
+
+        first_n, middle_n, last_n = model.get_user_name_by_id(staff_id)
+
+        reply = f'Заявка на підтвердження посади\n' \
+                f'id заявки: {req_id}\n' \
+                f'{"-" * 20}\n' \
+                f'id працівника: {staff_id}\n' \
+                f'ПІБ: {last_n} {first_n} {middle_n}\n' \
+                f'посада вказана в заявці: {model.get_role_by_id(requested_role_id)[1]}\n' \
+                f'{"-" * 20}\n' \
+                f'Виберіть посаду, яку необіхдно призначити даному працівнику:'
+
+        inline_kb = types.InlineKeyboardMarkup()
+
+        for x in model.get_roles_list():
+            inline_kb.add(types.InlineKeyboardButton(text=x[1], callback_data=f'change_request_role_option_{x[1]}'))
+
+        inline_kb.add(types.InlineKeyboardButton(text=f'{emojize(" :back:", use_aliases=True)}Назад до меню',
+                                                 callback_data='main_menu'))
+
+        bot.edit_message_text(chat_id=call.message.chat.id,
+                              message_id=call.message.message_id,
+                              text=reply,
+                              reply_markup=inline_kb)
+    except Exception as err:
+        meth_name = sys._getframe( ).f_code.co_name
+
+        logger.write_to_log('exception', 'controller')
+        logger.write_to_err_log(f'exception in method {meth_name} - {err}', 'controller')
+
+
+@bot.callback_query_handler(func=lambda call: call.data.split('change_request_').__len__() == 2)
+def change_request_option_handler(call):
+    """
+    Callback handler for changing requests details
+    :param call: callback instance
+    :return: None
+    """
+    try:
+        type_of_request = call.data.split('change_request_')[1].split('_')[0]
+        request_id = call.message.text.split('id заявки: ')[1].split('\n')[0]
+        staff_id = call.message.text.split('id працівника: ')[1].split('\n')[0]
+        changed_role = call.data.split('_')[-1]
+
+        logger.write_to_log(f'started approving request {request_id}', staff_id)
+
+        if type_of_request == 'role':
+            roles = model.get_roles_list()
+            role_id = 0
+            for r in roles:
+                if r[1] == changed_role:
+                    role_id = r[0]
+                    break
+
+            model.change_role_request(request_id, role_id, call.message.chat.id, staff_id)
+
+            msg = f'Заявку {request_id} було успішно підтверджено!{emojize(" :tada:", use_aliases=True)}'
+
+            role_requests = model.get_unaccepted_role_requests()
+
+            inline_kb = types.InlineKeyboardMarkup(row_width=1)
+            back_to_main = types.InlineKeyboardButton(text=f'{emojize(" :back:", use_aliases=True)}До меню',
+                                                      callback_data='main_menu')
+
+            if len(role_requests) > 0:
+                next_role = types.InlineKeyboardButton(
+                    text=f'{emojize(" :arrow_forward:", use_aliases=True)}Наступна заявка',
+                    callback_data='role_requests_approving')
+                inline_kb.add(next_role, back_to_main)
+            else:
+                inline_kb.add(back_to_main)
+
+            bot.edit_message_text(chat_id=call.message.chat.id,
+                                  message_id=call.message.message_id,
+                                  text=msg,
+                                  reply_markup=inline_kb)
+        else:  # qual
+            pass
+    except Exception as err:
+        meth_name = sys._getframe( ).f_code.co_name
+
+        logger.write_to_log('exception', 'controller')
+        logger.write_to_err_log(f'exception in method {meth_name} - {err}', 'controller')
+
+
 @bot.callback_query_handler(func=lambda call: call.data == 'quali_requests_approving')
 def quali_requests_approving_handler(call):
     try:
