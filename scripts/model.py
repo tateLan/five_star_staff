@@ -358,11 +358,12 @@ class Model:
             role_id = self.db_handler.get_role_id_from_role_request(id_user)[0]
             mysql_date = f'{now.year}-{now.month}-{now.day} {now.time().hour}:{now.time().minute}:00'
 
-            self.db_handler.accept_role_request(request_id=request_id, admin_id=admin_id, date=mysql_date)
-            self.db_handler.update_staff_role(user_id=id_user, role_id=role_id)
+            self.db_handler.accept_role_request(request_id, admin_id, mysql_date)
+            self.logger.write_to_log(f'role request id:{request_id} confirmed', admin_id)
+            self.db_handler.update_staff_role(id_user, role_id)
+            self.logger.write_to_log(f'user data update in staff', id_user)
             self.notifier.notify_user_about_accepted_request(user_id=id_user, request_type='заявка на посаду')
 
-            self.logger.write_to_log(f'role request id:{request_id} confirmed', admin_id)
         except Exception as err:
             meth_name = sys._getframe().f_code.co_name
 
