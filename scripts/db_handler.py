@@ -15,6 +15,9 @@ class DbHandler:
             database='five_star_db',
             auth_plugin='mysql_native_password'
         )
+        self.curs = self.connect.cursor()
+        self.curs.execute('set global wait_timeout=18000')  # 5 hrs timeout
+        self.curs.execute('set global interactive_timeout=18000')  # 5 hrs timeout
         print('db connected succesfully!')
 
     def get_user_by_telegram_id(self, id):
@@ -24,13 +27,11 @@ class DbHandler:
         :param id: user telegram id
         :return: first and last name of 0 if not exists
         """
-
-        cursor = self.connect.cursor()
         q = f'select first_name, last_name from staff where id={id};'
 
-        cursor.execute(q)
+        self.curs.execute(q)
 
-        res = cursor.fetchone()
+        res = self.curs.fetchone()
         if type(res) is type(None):
             return '0'
         else:
@@ -41,14 +42,11 @@ class DbHandler:
         Method adding users telegram id to table staff
         :param user_id: user telegram id
         """
-
-        cursor = self.connect.cursor()
-
         q = f'INSERT INTO five_star_db.staff (id, current_rating, general_rating,' \
             f' events_done, rate) VALUES ({user_id}, 0, 0, 0, ' \
             f'{config.START_RATE})'
 
-        cursor.execute(q)
+        self.curs.execute(q)
         self.connect.commit()
 
     def set_user_first_name(self, user_id, name):
@@ -57,11 +55,9 @@ class DbHandler:
         :param user_id: user telegram id
         :param name: first name of user
         """
-
-        cursor = self.connect.cursor()
         q = f"UPDATE five_star_db.staff SET first_name = '{name}' WHERE (id = '{user_id}');"
 
-        cursor.execute(q)
+        self.curs.execute(q)
 
         self.connect.commit()
 
@@ -71,11 +67,9 @@ class DbHandler:
         :param user_id: user telegram id
         :param m_name: user middle name
         """
-
-        cursor = self.connect.cursor()
         q = f"UPDATE five_star_db.staff SET middle_name = '{m_name}' WHERE (id = '{user_id}');"
 
-        cursor.execute(q)
+        self.curs.execute(q)
 
         self.connect.commit()
 
@@ -85,11 +79,9 @@ class DbHandler:
         :param user_id: user telegram id
         :param l_name: last name
         """
-
-        cursor = self.connect.cursor()
         q = f"UPDATE five_star_db.staff SET last_name = '{l_name}' WHERE (id = '{user_id}');"
 
-        cursor.execute(q)
+        self.curs.execute(q)
 
         self.connect.commit()
 
@@ -100,10 +92,8 @@ class DbHandler:
         :param role_id: id of role
         :return:
         """
-        cursor = self.connect.cursor()
-
         q = f"UPDATE five_star_db.staff SET staff_role = {role_id} WHERE (id ={user_id});"
-        cursor.execute(q)
+        self.curs.execute(q)
 
         self.connect.commit()
 
@@ -114,26 +104,27 @@ class DbHandler:
         :param role_quali: qualification code
         :return: None
         """
-        cursor = self.connect.cursor()
         q = f'UPDATE five_star_db.staff SET qualification = {role_quali} WHERE (id = {user_id});'
-        cursor.execute(q)
+        self.curs.execute(q)
         self.connect.commit()
 
     def get_roles_list(self):
-        cursor = self.connect.cursor()
+        """
+        Returns list of roles
+        :return:  set of roles
+        """
         q = "select * from roles where name_role != 'не підтверджено';"
-        cursor.execute(q)
-        res = cursor.fetchall()
+        self.curs.execute(q)
+        res = self.curs.fetchall()
 
         return res
 
     def get_role_by_id(self, role_id):
         q = f'select * from roles where id_role = {role_id};'
 
-        curs = self.connect.cursor()
-        curs.execute(q)
+        self.curs.execute(q)
 
-        return curs.fetchone()
+        return self.curs.fetchone()
 
     def get_not_set_role(self):
         cursor = self.connect.cursor()
@@ -185,11 +176,9 @@ class DbHandler:
         """
         q = f'select roles.id_role, roles.name_role from staff left join roles on staff.staff_role = roles.id_role where id = {user_id}'
 
-        curs = self.connect.cursor()
+        self.curs.execute(q)
 
-        curs.execute(q)
-
-        return curs.fetchone()
+        return self.curs.fetchone()
 
     def get_unaccepted_role_requests(self):
         """
@@ -199,10 +188,9 @@ class DbHandler:
         self.connect.commit()
         q = 'select * from role_confirmation where confirmed = 0'
 
-        curs = self.connect.cursor()
-        curs.execute(q)
+        self.curs.execute(q)
 
-        return curs.fetchall()
+        return self.curs.fetchall()
 
     def get_unaccepted_qualification_requests(self):
         """
@@ -212,10 +200,9 @@ class DbHandler:
         self.connect.commit()
         q = 'select * from qualification_confirmation where confirmed = 0'
 
-        curs = self.connect.cursor()
-        curs.execute(q)
+        self.curs.execute(q)
 
-        return curs.fetchall()
+        return self.curs.fetchall()
 
     def get_role_request_status(self, user_id):
         """
@@ -226,10 +213,9 @@ class DbHandler:
         self.connect.commit()
         q = f'select confirmed from role_confirmation where staff_id = {user_id};'
 
-        curs = self.connect.cursor()
-        curs.execute(q)
+        self.curs.execute(q)
 
-        return curs.fetchone()
+        return self.curs.fetchone()
 
     def get_qualification_request_status(self, user_id):
         """
@@ -240,10 +226,9 @@ class DbHandler:
         self.connect.commit()
         q = f'select confirmed from qualification_confirmation where staff_id = {user_id}'
 
-        curs = self.connect.cursor()
-        curs.execute(q)
+        self.curs.execute(q)
 
-        return curs.fetchone()
+        return self.curs.fetchone()
 
     def get_user_name_by_id(self, user_id):
         """
@@ -253,10 +238,9 @@ class DbHandler:
         """
         q = f'select first_name, middle_name, last_name from staff where id = {user_id};'
 
-        curs = self.connect.cursor()
-        curs.execute(q)
+        self.curs.execute(q)
 
-        return curs.fetchone()
+        return self.curs.fetchone()
 
     def accept_role_request(self, request_id, admin_id, date):
         """
@@ -268,8 +252,7 @@ class DbHandler:
         """
         q = f"update role_confirmation set date_confirmed = '{date}', confirmed_by = {admin_id}, confirmed = 1 where id = {request_id};"
 
-        curs = self.connect.cursor()
-        curs.execute(q)
+        self.curs.execute(q)
 
         self.connect.commit()
 
@@ -282,8 +265,7 @@ class DbHandler:
         """
         q = f'update staff set staff_role = {role_id} where id = {user_id};'
 
-        curs = self.connect.cursor()
-        curs.execute(q)
+        self.curs.execute(q)
 
         self.connect.commit()
 
@@ -295,8 +277,6 @@ class DbHandler:
         """
         q = f'select requested_role from role_confirmation where staff_id = {request};'
 
-        curs = self.connect.cursor()
-        curs.execute(q)
+        self.curs.execute(q)
 
-        return curs.fetchone()
-
+        return self.curs.fetchone()
