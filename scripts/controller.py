@@ -286,6 +286,47 @@ def accept_role_request(call):
         logger.write_to_err_log(f'exception in method {meth_name} - {err}', 'controller')
 
 
+@bot.callback_query_handler(func=lambda call: call.data == 'quali_requests_approving')
+def quali_requests_approving_handler(call):
+    try:
+        logger.write_to_log('entered into qualification requests approving menu', call.message.chat.id)
+        qualification_requests = model.get_unaccepted_qualification_requests()
+
+        req_id, staff_id, requested_q_id, date_placed, _, _, confirmed = qualification_requests[0]
+        first_n, middle_n, last_n = model.get_user_name_by_id(staff_id)
+
+        reply = f'Заявка на підтвердження кваліфікації\n' \
+                f'id заявки: {req_id}\n' \
+                f'{"-" * 20}\n' \
+                f'id працівника: {staff_id}\n' \
+                f'ПІБ: {last_n} {first_n} {middle_n}\n' \
+                f'кваліфікація вказана в заявці: {model.get_qualification_by_id(requested_q_id)[1]}'
+
+        inline_kb = types.InlineKeyboardMarkup()
+
+        accept_role = types.InlineKeyboardButton(text=f'{emojize(" :white_check_mark:", use_aliases=True)}Підтвердити',
+                                                 callback_data='accept_qualification_request')
+        decline_request = types.InlineKeyboardButton(text=f'{emojize(" :x:", use_aliases=True)}Змінити',
+                                                         callback_data='decline_qualification_request')
+
+        inline_kb.row(accept_role, decline_request)
+
+        inline_kb.row(types.InlineKeyboardButton(text=f'{emojize(" :back:", use_aliases=True)}Назад до меню',
+                                                 callback_data='main_menu'))
+
+        bot.edit_message_text(chat_id=call.message.chat.id,
+                              message_id=call.message.message_id,
+                              text=reply,
+                              reply_markup=inline_kb)
+
+
+    except Exception as err:
+        meth_name = sys._getframe( ).f_code.co_name
+
+        logger.write_to_log('exception', 'controller')
+        logger.write_to_err_log(f'exception in method {meth_name} - {err}', 'controller')
+
+
 @bot.callback_query_handler(func=lambda call: call.data.split('_option_').__len__() == 2)
 def callback_handler(call):
     """

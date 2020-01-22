@@ -1,6 +1,7 @@
 import mysql.connector
 import config
 from datetime import datetime
+import sys
 
 
 class DbHandler:
@@ -47,10 +48,15 @@ class DbHandler:
                 )
                 self.curs = self.connect.cursor(buffered=True)
                 self.session_time_alive = datetime.now()
-            if args.__len__() == 0:
-                return func(self)
-            else:
-                return func(self, args)
+            try:
+                if args.__len__() == 0:
+                    return func(self)
+                else:
+                    return func(self, args)
+            except Exception as err:
+                meth_name = sys._getframe().f_code.co_name
+
+                print(f'exception in method {meth_name} - {err}')
 
         return inner_func
 
@@ -177,6 +183,19 @@ class DbHandler:
         """
         role_id = args[0][0]
         q = f'select * from roles where id_role = {role_id};'
+
+        self.curs.execute(q)
+
+        return self.curs.fetchone()
+
+    def get_qualification_by_id(self, *args):
+        """
+        Returns qualification by its id
+        :param args: id of qualification
+        :return: qualification instance
+        """
+        id = args[0]
+        q = f'select * from qualification where id = {id};'
 
         self.curs.execute(q)
 

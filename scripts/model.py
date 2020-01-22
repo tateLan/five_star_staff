@@ -146,6 +146,23 @@ class Model:
             self.logger.write_to_log('exception', 'model')
             self.logger.write_to_err_log(f'exception in method {meth_name} - {err}', 'model')
 
+    def get_qualification_by_id(self, quali_id):
+        """
+        Returns qualification instance
+        :param quali_id: id
+        :return:qualification instance
+        """
+        try:
+            quali = self.db_handler.get_qualification_by_id(quali_id)
+
+            self.logger.write_to_log('got qualification by id', 'model')
+            return quali
+        except Exception as err:
+            meth_name = sys._getframe().f_code.co_name
+
+            self.logger.write_to_log('exception', 'model')
+            self.logger.write_to_err_log(f'exception in method {meth_name} - {err}', 'model')
+
     def register_role_request(self, role, user_id):
         """
         Registers user request to role confirmation
@@ -369,3 +386,4 @@ class Model:
 
             self.logger.write_to_log('exception', 'model')
             self.logger.write_to_err_log(f'exception in method {meth_name} - {err}', 'model')
+
