@@ -414,6 +414,13 @@ class Model:
             self.logger.write_to_err_log(f'exception in method {method_name} - {err}', 'model')
 
     def accept_qualification_request(self, request_id, admin_id, id_user):
+        """
+        Updates qualification request
+        :param request_id: id of request
+        :param admin_id: user telegram id (admin)
+        :param id_user: user telegram id (staff)
+        :return: None
+        """
         try:
             now = datetime.now()
             mysql_date = f'{now.year}-{now.month}-{now.day} {now.time().hour}:{now.time().minute}:00'
@@ -424,6 +431,32 @@ class Model:
             self.db_handler.update_staff_qualification(id_user, qual_id)
             self.logger.write_to_log(f'user data update in staff', id_user)
             self.notifier.notify_user_about_accepted_request(user_id=id_user, request_type='заявка на кваліфікацію')
+
+        except Exception as err:
+            method_name = sys._getframe().f_code.co_name
+
+            self.logger.write_to_log('exception', 'model')
+            self.logger.write_to_err_log(f'exception in method {method_name} - {err}', 'model')
+
+    def change_qualification_request(self, request_id, qualification_id, admin_id, user_id):
+        """
+        Modifies qualification request due to selected option by admin/manager
+        :param request_id: id of request
+        :param qualification_id: id of selected qualification
+        :param admin_id: user telegram id (admin)
+        :param user_id:  user telegram id (staff)
+        :return: None
+        """
+        try:
+            now = datetime.now()
+            mysql_date = f'{now.year}-{now.month}-{now.day} {now.time().hour}:{now.time().minute}:00'
+
+            self.db_handler.modify_qualification_request(request_id, qualification_id)
+            self.db_handler.accept_qualification_request(request_id, admin_id, mysql_date)
+            self.logger.write_to_log(f'qualification request id:{request_id} confirmed', admin_id)
+            self.db_handler.update_staff_qualification(user_id, qualification_id)
+            self.logger.write_to_log(f'user data update in staff', user_id)
+            self.notifier.notify_user_about_accepted_request(user_id=user_id, request_type='заявка на кваліфікацію')
 
         except Exception as err:
             method_name = sys._getframe().f_code.co_name

@@ -25,9 +25,9 @@ def init_controller():
         bot.polling(none_stop=True)
 
     except Exception as err:
-        meth_name = sys._getframe( ).f_code.co_name
+        method_name = sys._getframe( ).f_code.co_name
         logger.write_to_log('exception', 'sys')
-        logger.write_to_err_log(f'exception in method {meth_name} - {err}', 'sys')
+        logger.write_to_err_log(f'exception in method {method_name} - {err}', 'sys')
 
 
 @bot.message_handler(commands=['start'])
@@ -55,9 +55,9 @@ def handle_start(message):
 
         logger.write_to_log('handled /start command', message.chat.id)
     except Exception as err:
-        meth_name = sys._getframe( ).f_code.co_name
+        method_name = sys._getframe( ).f_code.co_name
         logger.write_to_log('exception', 'controller')
-        logger.write_to_err_log(f'exception in method {meth_name} - {err}', 'controller')
+        logger.write_to_err_log(f'exception in method {method_name} - {err}', 'controller')
 
 
 @bot.message_handler(commands=['menu'])
@@ -79,10 +79,10 @@ def register_user_name(message):
         bot.register_next_step_handler(sent_middle_name_request, register_user_middle_name)
 
     except Exception as err:
-        meth_name = sys._getframe( ).f_code.co_name
+        method_name = sys._getframe( ).f_code.co_name
 
         logger.write_to_log('exception', 'controller')
-        logger.write_to_err_log(f'exception in method {meth_name} - {err}', 'controller')
+        logger.write_to_err_log(f'exception in method {method_name} - {err}', 'controller')
 
 
 def register_user_middle_name(message):
@@ -97,10 +97,10 @@ def register_user_middle_name(message):
         sent_last_name_request = bot.send_message(message.chat.id, 'Введіть прізвище')
         bot.register_next_step_handler(sent_last_name_request, get_user_last_name)
     except Exception as err:
-        meth_name = sys._getframe( ).f_code.co_name
+        method_name = sys._getframe( ).f_code.co_name
 
         logger.write_to_log('exception', 'controller')
-        logger.write_to_err_log(f'exception in method {meth_name} - {err}', 'controller')
+        logger.write_to_err_log(f'exception in method {method_name} - {err}', 'controller')
 
 
 def get_user_last_name(message):
@@ -121,10 +121,10 @@ def get_user_last_name(message):
 
         logger.write_to_log('requested user\'s role', message.chat.id)
     except Exception as err:
-        meth_name = sys._getframe( ).f_code.co_name
+        method_name = sys._getframe( ).f_code.co_name
 
         logger.write_to_log('exception', 'controller')
-        logger.write_to_err_log(f'exception in method {meth_name} - {err}', 'controller')
+        logger.write_to_err_log(f'exception in method {method_name} - {err}', 'controller')
 
 
 @bot.callback_query_handler(func=lambda call: call.data == 'main_menu')
@@ -137,10 +137,10 @@ def main_menu(call):
     try:
         show_main_menu(message=call.message, edit=True)
     except Exception as err:
-        meth_name = sys._getframe( ).f_code.co_name
+        method_name = sys._getframe( ).f_code.co_name
 
         logger.write_to_log('exception', 'controller')
-        logger.write_to_err_log(f'exception in method {meth_name} - {err}', 'controller')
+        logger.write_to_err_log(f'exception in method {method_name} - {err}', 'controller')
 
 
 @bot.callback_query_handler(func=lambda call: call.data == 'main_menu_new')
@@ -156,10 +156,10 @@ def main_menu_without_edit(call):
                                       message_id=call.message.message_id,
                                       reply_markup=None)
     except Exception as err:
-        meth_name = sys._getframe( ).f_code.co_name
+        method_name = sys._getframe( ).f_code.co_name
 
         logger.write_to_log('exception', 'controller')
-        logger.write_to_err_log(f'exception in method {meth_name} - {err}', 'controller')
+        logger.write_to_err_log(f'exception in method {method_name} - {err}', 'controller')
 
 
 @bot.callback_query_handler(func=lambda call : call.data == 'confirm_requests')
@@ -198,9 +198,9 @@ def confirm_requests_handler(call):
                               reply_markup=inline_kb)
         logger.write_to_log('displayed list of pending requests', call.message.chat.id)
     except Exception as err:
-        meth_name = sys._getframe( ).f_code.co_name
+        method_name = sys._getframe( ).f_code.co_name
         logger.write_to_log('exception', 'controller')
-        logger.write_to_err_log(f'exception in method {meth_name} - {err}', 'controller')
+        logger.write_to_err_log(f'exception in method {method_name} - {err}', 'controller')
 
 
 @bot.callback_query_handler(func=lambda call: call.data == 'role_requests_approving')
@@ -243,10 +243,10 @@ def role_req_approving(call):
                               text=reply,
                               reply_markup=inline_kb)
     except Exception as err:
-        meth_name = sys._getframe( ).f_code.co_name
+        method_name = sys._getframe( ).f_code.co_name
 
         logger.write_to_log('exception', 'controller')
-        logger.write_to_err_log(f'exception in method {meth_name} - {err}', 'controller')
+        logger.write_to_err_log(f'exception in method {method_name} - {err}', 'controller')
 
 
 @bot.callback_query_handler(func=lambda call: call.data == 'accept_role_request')
@@ -280,10 +280,10 @@ def accept_role_request(call):
                               text=msg,
                               reply_markup=inline_kb)
     except Exception as err:
-        meth_name = sys._getframe( ).f_code.co_name
+        method_name = sys._getframe( ).f_code.co_name
 
         logger.write_to_log('exception', 'controller')
-        logger.write_to_err_log(f'exception in method {meth_name} - {err}', 'controller')
+        logger.write_to_err_log(f'exception in method {method_name} - {err}', 'controller')
 
 
 @bot.callback_query_handler(func=lambda call: call.data == 'decline_role_request')
@@ -324,10 +324,10 @@ def decline_role_request_handler(call):
                               text=reply,
                               reply_markup=inline_kb)
     except Exception as err:
-        meth_name = sys._getframe( ).f_code.co_name
+        method_name = sys._getframe( ).f_code.co_name
 
         logger.write_to_log('exception', 'controller')
-        logger.write_to_err_log(f'exception in method {meth_name} - {err}', 'controller')
+        logger.write_to_err_log(f'exception in method {method_name} - {err}', 'controller')
 
 
 @bot.callback_query_handler(func=lambda call: call.data.split('change_request_').__len__() == 2)
@@ -341,7 +341,7 @@ def change_request_option_handler(call):
         type_of_request = call.data.split('change_request_')[1].split('_')[0]
         request_id = call.message.text.split('id заявки: ')[1].split('\n')[0]
         staff_id = call.message.text.split('id працівника: ')[1].split('\n')[0]
-        changed_role = call.data.split('_')[-1]
+        changed_parameter = call.data.split('_')[-1]
 
         logger.write_to_log(f'started approving request {request_id}', staff_id)
 
@@ -349,7 +349,7 @@ def change_request_option_handler(call):
             roles = model.get_roles_list()
             role_id = 0
             for r in roles:
-                if r[1] == changed_role:
+                if r[1] == changed_parameter:
                     role_id = r[0]
                     break
 
@@ -376,12 +376,40 @@ def change_request_option_handler(call):
                                   text=msg,
                                   reply_markup=inline_kb)
         else:  # qual
-            pass
+            quals = model.get_qualification_list()
+            qual_id = 0
+            for r in quals:
+                if r[1] == changed_parameter:
+                    qual_id = r[0]
+                    break
+
+            model.change_qualification_request(request_id, qual_id, call.message.chat.id, staff_id)
+            msg = f'Заявку {request_id} було успішно підтверджено!{emojize(" :tada:", use_aliases=True)}'
+
+            qual_requests = model.get_unaccepted_qualification_requests()
+
+            inline_kb = types.InlineKeyboardMarkup(row_width=1)
+            back_to_main = types.InlineKeyboardButton(text=f'{emojize(" :back:", use_aliases=True)}До меню',
+                                                      callback_data='main_menu')
+
+            if len(qual_requests) > 0:
+                next_role = types.InlineKeyboardButton(
+                    text=f'{emojize(" :arrow_forward:", use_aliases=True)}Наступна заявка',
+                    callback_data='quali_requests_approving')
+                inline_kb.add(next_role, back_to_main)
+            else:
+                inline_kb.add(back_to_main)
+
+            bot.edit_message_text(chat_id=call.message.chat.id,
+                                  message_id=call.message.message_id,
+                                  text=msg,
+                                  reply_markup=inline_kb)
+
     except Exception as err:
-        meth_name = sys._getframe( ).f_code.co_name
+        method_name = sys._getframe( ).f_code.co_name
 
         logger.write_to_log('exception', 'controller')
-        logger.write_to_err_log(f'exception in method {meth_name} - {err}', 'controller')
+        logger.write_to_err_log(f'exception in method {method_name} - {err}', 'controller')
 
 
 @bot.callback_query_handler(func=lambda call: call.data == 'quali_requests_approving')
@@ -418,10 +446,10 @@ def quali_requests_approving_handler(call):
                               reply_markup=inline_kb)
 
     except Exception as err:
-        meth_name = sys._getframe( ).f_code.co_name
+        method_name = sys._getframe( ).f_code.co_name
 
         logger.write_to_log('exception', 'controller')
-        logger.write_to_err_log(f'exception in method {meth_name} - {err}', 'controller')
+        logger.write_to_err_log(f'exception in method {method_name} - {err}', 'controller')
 
 
 @bot.callback_query_handler(func=lambda call: call.data == 'accept_qualification_request')
@@ -452,11 +480,48 @@ def accept_qualification_request_handler(call):
                               text=msg,
                               reply_markup=inline_kb)
     except Exception as err:
-        meth_name = sys._getframe( ).f_code.co_name
+        method_name = sys._getframe( ).f_code.co_name
 
         logger.write_to_log('exception', 'controller')
-        logger.write_to_err_log(f'exception in method {meth_name} - {err}', 'controller')
+        logger.write_to_err_log(f'exception in method {method_name} - {err}', 'controller')
 
+
+@bot.callback_query_handler(func=lambda call: call.data == 'decline_qualification_request')
+def decline_qualification_request_handler(call):
+    try:
+        logger.write_to_log('entered into qualification requests changing menu', call.message.chat.id)
+
+        qual_request = model.get_unaccepted_qualification_requests()[0]
+
+        req_id, staff_id, requested_qualification_id, date_placed, _, _, confirmed = qual_request
+        first_n, middle_n, last_n = model.get_user_name_by_id(staff_id)
+
+        reply = f'Заявка на підтвердження кваліфікації\n' \
+                f'id заявки: {req_id}\n' \
+                f'{"-" * 20}\n' \
+                f'id працівника: {staff_id}\n' \
+                f'ПІБ: {last_n} {first_n} {middle_n}\n' \
+                f'кваліфікація вказана в заявці: {model.get_qualification_by_id(requested_qualification_id)[1]}\n' \
+                f'{"-" * 20}\n' \
+                f'Виберіть кваліфікацію, яку необіхдно призначити даному працівнику:'
+
+        inline_kb = types.InlineKeyboardMarkup()
+        for x in model.get_qualification_list():
+            inline_kb.add(types.InlineKeyboardButton(text=x[1], callback_data=f'change_request_qual_option_{x[1]}'))
+
+        inline_kb.add(types.InlineKeyboardButton(text=f'{emojize(" :back:", use_aliases=True)}Назад до меню',
+                                                 callback_data='main_menu'))
+
+        bot.edit_message_text(chat_id=call.message.chat.id,
+                              message_id=call.message.message_id,
+                              text=reply,
+                              reply_markup=inline_kb)
+
+    except Exception as err:
+        method_name = sys._getframe( ).f_code.co_name
+
+        logger.write_to_log('exception', 'controller')
+        logger.write_to_err_log(f'exception in method {method_name} - {err}', 'controller')
 
 
 @bot.callback_query_handler(func=lambda call: call.data.split('_option_').__len__() == 2)
@@ -511,10 +576,10 @@ def callback_handler(call):
                                        'після затвердження ви отримаєте сповіщення :)',
                                   reply_markup=inline_kb)
     except Exception as err:
-        meth_name = sys._getframe( ).f_code.co_name
+        method_name = sys._getframe( ).f_code.co_name
 
         logger.write_to_log('exception', 'controller')
-        logger.write_to_err_log(f'exception in method {meth_name} - {err}', 'controller')
+        logger.write_to_err_log(f'exception in method {method_name} - {err}', 'controller')
 
 
 def classify_role(func):
@@ -598,10 +663,10 @@ def show_main_menu(message, user_role, edit=False):
         else:
             bot.send_message(chat_id=message.chat.id, text=msg, reply_markup=inline_kb)
     except Exception as err:
-        meth_name = sys._getframe( ).f_code.co_name
+        method_name = sys._getframe( ).f_code.co_name
 
         logger.write_to_log('exception', 'controller')
-        logger.write_to_err_log(f'exception in method {meth_name} - {err}', 'controller')
+        logger.write_to_err_log(f'exception in method {method_name} - {err}', 'controller')
 
 
 @bot.message_handler(content_types=['text'])

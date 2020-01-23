@@ -451,3 +451,16 @@ class DbHandler:
         self.curs.execute(q)
         self.connect.commit()
 
+    @check_session_time_alive
+    def modify_qualification_request(self, *args):
+        """
+        Modifies qualification request details
+        :param args: qualification request id, id of needed qualification
+        :return: None
+        """
+        req_id, qual_id = args[0]
+
+        q = f'update qualification_confirmation set requested_qualification={qual_id} where id={req_id};'
+        self.curs.execute(q)
+
+        self.connect.commit()
