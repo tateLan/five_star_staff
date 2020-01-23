@@ -464,3 +464,17 @@ class DbHandler:
         self.curs.execute(q)
 
         self.connect.commit()
+
+    @check_session_time_alive
+    def get_staff_count_by_role(self, *args):
+        """
+        Returns count of staff by specified role id
+        :param: args: id of role
+        :return: count of staff by role
+        """
+        role_id = args[0][0]
+        q = f'select count(*) from staff where staff_role={role_id};'
+
+        self.curs.execute(q)
+
+        return self.curs.fetchone()

@@ -464,3 +464,37 @@ class Model:
             self.logger.write_to_log('exception', 'model')
             self.logger.write_to_err_log(f'exception in method {method_name} - {err}', 'model')
 
+    def get_users_count(self):
+        """
+        Returns string of number registered users by every role
+        :return: string with numbers of staff
+        """
+        try:
+            roles = self.db_handler.get_roles_list()
+            reply = ''
+
+            for role_id, role_name in roles:
+                reply += f'{role_name}ів - {self.db_handler.get_staff_count_by_role(role_id)[0]}\n'
+
+            return reply
+
+
+        except Exception as err:
+            method_name = sys._getframe().f_code.co_name
+
+            self.logger.write_to_log('exception', 'model')
+            self.logger.write_to_err_log(f'exception in method {method_name} - {err}', 'model')
+
+    def get_db_session_duration(self):
+        """
+        Returns duration of current mysql session for admin statistics
+        :return: session duration (seconds)
+        """
+        try:
+            pass
+        except Exception as err:
+            method_name = sys._getframe().f_code.co_name
+
+            self.logger.write_to_log('exception', 'model')
+            self.logger.write_to_err_log(f'exception in method {method_name} - {err}', 'model')
+

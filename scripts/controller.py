@@ -582,6 +582,84 @@ def callback_handler(call):
         logger.write_to_err_log(f'exception in method {method_name} - {err}', 'controller')
 
 
+@bot.callback_query_handler(func=lambda call: call.data == 'adm_stats')
+def adm_stats_handler(call):
+    """
+    Displays admin statistics menu
+    :param call: callback instance
+    :return:None
+    """
+    try:
+        msg = f'Виберіть необхідний параметр:'
+
+        inline_kb = types.InlineKeyboardMarkup()
+
+        # TODO: add admin statistics
+
+        num_of_users = types.InlineKeyboardButton(text=f'{emojize(" :busts_in_silhouette:", use_aliases=True)}Кількість користувачів', callback_data='adm_stat_users_count')
+        db_session_duration = types.InlineKeyboardButton(text=f'{emojize(" :hourglass_flowing_sand:", use_aliases=True)}Тривалість сесії', callback_data='adm_stat_session_duration')
+        inline_kb.row(num_of_users, db_session_duration)
+
+        back_to_menu = types.InlineKeyboardButton(text=f'{emojize(" :back:", use_aliases=True)}Повернутись до меню',
+                                                  callback_data='main_menu')
+        inline_kb.row(back_to_menu)
+
+        bot.edit_message_text(chat_id=call.message.chat.id,
+                              message_id=call.message.message_id,
+                              text=msg,
+                              reply_markup=inline_kb)
+
+    except Exception as err:
+        method_name = sys._getframe( ).f_code.co_name
+
+        logger.write_to_log('exception', 'controller')
+        logger.write_to_err_log(f'exception in method {method_name} - {err}', 'controller')
+
+
+@bot.callback_query_handler(func=lambda call: call.data == 'adm_stat_users_count')
+def adm_stat_users_count_handler(call):
+    """
+    Users count statistics menu handler
+    :param call: callback instance
+    :return: None
+    """
+    try:
+        msg = f'Кількість користувачів зареєстрованих в системі:\n' \
+              f'{"-" * 20}\n' \
+              f'{model.get_users_count()}\n' \
+              f'{"-" * 20}'
+
+        inline_kb = types.InlineKeyboardMarkup()
+
+        back_to_menu = types.InlineKeyboardButton(text=f'{emojize(" :back:", use_aliases=True)}Повернутись до меню',
+                                                  callback_data='main_menu')
+        inline_kb.row(back_to_menu)
+
+        bot.edit_message_text(chat_id=call.message.chat.id,
+                              message_id=call.message.message_id,
+                              text=msg,
+                              reply_markup=inline_kb)
+    except Exception as err:
+        method_name = sys._getframe( ).f_code.co_name
+
+        logger.write_to_log('exception', 'controller')
+        logger.write_to_err_log(f'exception in method {method_name} - {err}', 'controller')
+
+
+@bot.callback_query_handler(func=lambda call: call.data == 'adm_stat_session_duration')
+def adm_stat_session_duration_handler(call):
+    try:
+        # TODO: implement this
+        pass
+    except Exception as err:
+        method_name = sys._getframe( ).f_code.co_name
+
+        logger.write_to_log('exception', 'controller')
+        logger.write_to_err_log(f'exception in method {method_name} - {err}', 'controller')
+
+
+
+
 def classify_role(func):
     """
     Decorator for classification user role
