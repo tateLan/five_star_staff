@@ -417,12 +417,46 @@ def quali_requests_approving_handler(call):
                               text=reply,
                               reply_markup=inline_kb)
 
-
     except Exception as err:
         meth_name = sys._getframe( ).f_code.co_name
 
         logger.write_to_log('exception', 'controller')
         logger.write_to_err_log(f'exception in method {meth_name} - {err}', 'controller')
+
+
+@bot.callback_query_handler(func=lambda call: call.data == 'accept_qualification_request')
+def accept_qualification_request_handler(call):
+    try:
+        id = call.message.text.split('id заявки: ')[1].split('\n')[0]
+        id_user = call.message.text.split('id працівника: ')[1].split('\n')[0]
+
+        model.accept_qualification_request(id, call.message.chat.id, id_user)
+        msg = f'Заявку {id} було успішно підтверджено!{emojize(" :tada:", use_aliases=True)}'
+
+        qual_requests = model.get_unaccepted_qualification_requests()
+
+        inline_kb = types.InlineKeyboardMarkup(row_width=1)
+        back_to_main = types.InlineKeyboardButton(text=f'{emojize(" :back:", use_aliases=True)}До меню',
+                                                  callback_data='main_menu')
+
+        if len(qual_requests) > 0:
+            next_role = types.InlineKeyboardButton(
+                text=f'{emojize(" :arrow_forward:", use_aliases=True)}Наступна заявка',
+                callback_data='quali_requests_approving')
+            inline_kb.add(next_role, back_to_main)
+        else:
+            inline_kb.add(back_to_main)
+
+        bot.edit_message_text(chat_id=call.message.chat.id,
+                              message_id=call.message.message_id,
+                              text=msg,
+                              reply_markup=inline_kb)
+    except Exception as err:
+        meth_name = sys._getframe( ).f_code.co_name
+
+        logger.write_to_log('exception', 'controller')
+        logger.write_to_err_log(f'exception in method {meth_name} - {err}', 'controller')
+
 
 
 @bot.callback_query_handler(func=lambda call: call.data.split('_option_').__len__() == 2)

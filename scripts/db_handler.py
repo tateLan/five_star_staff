@@ -409,3 +409,45 @@ class DbHandler:
 
         self.curs.execute(q)
         self.connect.commit()
+
+    @check_session_time_alive
+    def get_qualification_id_from_qualification_request(self, *args):
+        """
+        Returns id of requested qualification from request
+        :param args: id of request
+        :return: qualification id
+        """
+        staff_id = args[0][0]
+        q = f'select requested_qualification from qualification_confirmation where staff_id = {staff_id};'
+
+        self.curs.execute(q)
+
+        return self.curs.fetchone()
+
+    @check_session_time_alive
+    def accept_qualification_request(self, *args):
+        """
+        Updates qualification request as confirmed
+        :param args: request id, admin telegram id, formatted date
+        :return: None
+        """
+        req_id, admin_id, date = args[0]
+
+        q = f"update qualification_confirmation set date_confirmed = '{date}', confirmed_by = {admin_id}, confirmed = 1 where id = {req_id};"
+
+        self.curs.execute(q)
+        self.connect.commit()
+
+    @check_session_time_alive
+    def update_staff_qualification(self, *args):
+        """
+        Updates staff information about his qualification
+        :param args: user telegram id, id of qualification
+        :return: None
+        """
+        user_id, quali_id = args[0]
+
+        q = f'update staff set qualification = {quali_id} where id = {user_id}'
+        self.curs.execute(q)
+        self.connect.commit()
+
