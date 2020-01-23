@@ -491,7 +491,11 @@ class Model:
         :return: session duration (seconds)
         """
         try:
-            pass
+            session_duration = self.db_handler.get_session_duration()
+
+            self.logger.write_to_log('got session duration', sys._getframe().f_code.co_name)
+
+            return session_duration
         except Exception as err:
             method_name = sys._getframe().f_code.co_name
 

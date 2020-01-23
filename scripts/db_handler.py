@@ -478,3 +478,11 @@ class DbHandler:
         self.curs.execute(q)
 
         return self.curs.fetchone()
+
+    @check_session_time_alive
+    def get_session_duration(self):
+        """
+        Returns session duration
+        :return: session duration(seconds)
+        """
+        return (datetime.now() - self.session_time_alive).seconds

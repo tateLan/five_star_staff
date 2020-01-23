@@ -649,15 +649,30 @@ def adm_stat_users_count_handler(call):
 @bot.callback_query_handler(func=lambda call: call.data == 'adm_stat_session_duration')
 def adm_stat_session_duration_handler(call):
     try:
-        # TODO: implement this
-        pass
+        session_duration = model.get_db_session_duration()
+
+        msg = f'Тривалість поточної сесеї з базою даних:\n' \
+              f'{"-" * 20}\n' \
+              f'секунд - {session_duration}\n' \
+              f'хвилин - {session_duration / 60}\n' \
+              f'годин - {session_duration / 3600}\n' \
+              f'{"-" * 20}'
+
+        inline_kb = types.InlineKeyboardMarkup()
+
+        back_to_menu = types.InlineKeyboardButton(text=f'{emojize(" :back:", use_aliases=True)}Повернутись до меню',
+                                                  callback_data='main_menu')
+        inline_kb.row(back_to_menu)
+
+        bot.edit_message_text(chat_id=call.message.chat.id,
+                              message_id=call.message.message_id,
+                              text=msg,
+                              reply_markup=inline_kb)
     except Exception as err:
         method_name = sys._getframe( ).f_code.co_name
 
         logger.write_to_log('exception', 'controller')
         logger.write_to_err_log(f'exception in method {method_name} - {err}', 'controller')
-
-
 
 
 def classify_role(func):
