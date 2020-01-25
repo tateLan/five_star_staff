@@ -276,6 +276,7 @@ class DbHandler:
         :param user_id: user telegram id
         :return: set of role id and role name
         """
+        self.connect.commit()
         user_id = args[0][0]
         q = f'select roles.id_role, roles.name_role from staff left join roles on staff.staff_role = roles.id_role where id = {user_id}'
 
@@ -486,3 +487,14 @@ class DbHandler:
         :return: session duration(seconds)
         """
         return (datetime.now() - self.session_time_alive).seconds
+
+    @check_session_time_alive
+    def get_unaccepted_events_list(self):
+        """
+        Returns list of unaccepted event requests
+        :return: list of unaccepted event requests
+        """
+        q = 'select * from event_request where staff_processed is null;'
+
+        self.curs.execute(q)
+        return self.curs.fetchall()

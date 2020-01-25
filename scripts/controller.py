@@ -739,7 +739,55 @@ def show_main_menu(message, user_role, edit=False):
             logger.write_to_log('displayed admin panel', message.chat.id)
         elif user_role == 'менеджер':
             logger.write_to_log('requested manager menu', message.chat.id)
-            # TODO: manager menu
+            staff_pending_requests = model.get_unaccepted_request_count()
+            event_pending_requests = model.get_unaccepted_event_requests_count()
+
+            staff_requests_str = f'{emojize(" :busts_in_silhouette:", use_aliases=True)}{emojize(":negative_squared_cross_mark:", use_aliases=True) if staff_pending_requests > 0 else emojize(" :white_check_mark:", use_aliases=True)} Не підтверджених заявок персоналу{(": " + str(staff_pending_requests)) if staff_pending_requests > 0 else " немає"}'
+            event_requests_str = f'{emojize(" :dizzy:", use_aliases=True)}{emojize(":negative_squared_cross_mark:", use_aliases=True) if event_pending_requests > 0 else emojize(" :white_check_mark:", use_aliases=True)} Не підтверджених заявок на події{(": " + str(event_pending_requests)) if event_pending_requests > 0 else " немає"}'
+
+            msg = f'Меню менеджера\n' \
+                  f'{"-" * 20}\n' \
+                  f'{staff_requests_str}\n' \
+                  f'{event_requests_str}\n'
+
+
+            inline_kb = types.InlineKeyboardMarkup(row_width=1)
+
+            confirm_requests = types.InlineKeyboardButton(
+                text=f'{emojize(" :busts_in_silhouette:", use_aliases=True)}{emojize(":white_check_mark:", use_aliases=True)}Підтвердження заявок персоналу',
+                callback_data='confirm_requests')
+
+            confirm_event_requests = types.InlineKeyboardButton(
+                text=f'{emojize(" :dizzy:", use_aliases=True)}{emojize(":white_check_mark:", use_aliases=True)}Підтвердження заявок на події',
+                callback_data='confirm_event_requests')
+
+            set_main_on_shift = types.InlineKeyboardButton(
+                text=f'{emojize(" :cop:", use_aliases=True)}Призначити головного на зміну',
+                callback_data='set_main_on_shift')
+
+            change_main_on_shift = types.InlineKeyboardButton(
+                text=f'{emojize(" :boy:", use_aliases=True)}Змінити головного на зміні',
+                callback_data='change_main_on_shift')
+
+            get_manager_stat = types.InlineKeyboardButton(
+                text=f'{emojize(" :bar_chart:", use_aliases=True)}Отримати статистику',
+                callback_data='get_manager_statistics')
+
+            update = types.InlineKeyboardButton(text=f'{emojize(" :repeat:", use_aliases=True)}Оновити статус',
+                                                callback_data='main_menu')
+            if staff_pending_requests > 0 and event_pending_requests > 0:
+                inline_kb.row(confirm_requests, confirm_event_requests)
+            elif (staff_pending_requests == 0) and (event_pending_requests > 0):
+                inline_kb.row(confirm_event_requests)
+            elif (staff_pending_requests > 0) and (event_pending_requests == 0):
+                inline_kb.row(confirm_requests)
+
+            inline_kb.row(set_main_on_shift, change_main_on_shift)
+            inline_kb.row(get_manager_stat)
+            inline_kb.row(update)
+
+            # TODO: update manager menu
+
             logger.write_to_log('displayed manager menu', message.chat.id)
         elif user_role == 'офіціант':
             logger.write_to_log('requested waiter menu', message.chat.id)

@@ -502,3 +502,28 @@ class Model:
             self.logger.write_to_log('exception', 'model')
             self.logger.write_to_err_log(f'exception in method {method_name} - {err}', 'model')
 
+    def get_unaccepted_event_requests(self):
+        """
+        Returns list of unaccepted event requests
+        :return:list of unaccepted event requests
+        """
+        try:
+            self.logger.write_to_log('requested events unaccepted request', 'model')
+
+            event_requests = self.db_handler.get_unaccepted_events_list()
+
+            return event_requests
+
+        except Exception as err:
+            method_name = sys._getframe().f_code.co_name
+
+            self.logger.write_to_log('exception', 'model')
+            self.logger.write_to_err_log(f'exception in method {method_name} - {err}', 'model')
+
+    def get_unaccepted_event_requests_count(self):
+        """
+        Returns count of unaccepted event requests
+        :return: count of unaccepted event requests
+        """
+        return self.get_unaccepted_event_requests().__len__()
+
