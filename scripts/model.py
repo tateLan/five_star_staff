@@ -527,3 +527,59 @@ class Model:
         """
         return self.get_unaccepted_event_requests().__len__()
 
+    def get_client_by_id(self, client_id):
+        try:
+            self.logger.write_to_log('requested event request', 'model')
+
+            client = self.db_handler.get_client_by_id(client_id)
+
+            return client
+        except Exception as err:
+            method_name = sys._getframe().f_code.co_name
+
+            self.logger.write_to_log('exception', 'model')
+            self.logger.write_to_err_log(f'exception in method {method_name} - {err}', 'model')
+
+    def get_event_request(self):
+        try:
+            self.logger.write_to_log('requested event request', 'model')
+            request = self.db_handler.get_event_request()
+
+            return request
+        except Exception as err:
+            method_name = sys._getframe().f_code.co_name
+
+            self.logger.write_to_log('exception', 'model')
+            self.logger.write_to_err_log(f'exception in method {method_name} - {err}', 'model')
+
+    def get_event_request_extended_info(self):
+        try:
+            self.logger.write_to_log('requested extended event request', 'model')
+            request = self.db_handler.get_event_request_extended_info()
+
+            return request
+        except Exception as err:
+            method_name = sys._getframe().f_code.co_name
+
+            self.logger.write_to_log('exception', 'model')
+            self.logger.write_to_err_log(f'exception in method {method_name} - {err}', 'model')
+
+    def get_type_of_event_by_id(self, type_event_id):
+        try:
+            self.logger.write_to_log(f'event type {type_event_id} requested', 'model')
+            return self.db_handler.get_event_type_by_id(type_event_id)
+        except Exception as err:
+            method_name = sys._getframe().f_code.co_name
+
+            self.logger.write_to_log('exception', 'model')
+            self.logger.write_to_err_log(f'exception in method {method_name} - {err}', 'model')
+
+    def get_class_of_event_by_id(self, class_event_id):
+        try:
+            self.logger.write_to_log(f'event class {class_event_id} requested', 'model')
+            return self.db_handler.get_event_class_by_id(class_event_id)
+        except Exception as err:
+            method_name = sys._getframe().f_code.co_name
+
+            self.logger.write_to_log('exception', 'model')
+            self.logger.write_to_err_log(f'exception in method {method_name} - {err}', 'model')

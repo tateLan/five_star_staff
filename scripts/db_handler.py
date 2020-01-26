@@ -498,3 +498,60 @@ class DbHandler:
 
         self.curs.execute(q)
         return self.curs.fetchall()
+
+    @check_session_time_alive
+    def get_event_request(self):
+        q = 'select * from event_request where staff_processed is null limit 1'
+
+        self.curs.execute(q)
+
+        return self.curs.fetchone()
+
+    @check_session_time_alive
+    def get_event_request_extended_info(self):
+        """
+        Return extended data about event request
+        :return:event request id, event id, client id, location of event,
+                date starts, date ends, number of guests, id of type of event,
+                id of event class, number of needed staff
+        """
+        self.connect.commit()
+
+        q = 'select er.id, e.id, client_id, e.title, location, date_starts, date_ends, guests, ' \
+            'type_of_event, event_class, staff_needed  ' \
+            'from event_request er left join events e on er.id = e.event_request_id ' \
+            'where staff_processed is null'
+
+        self.curs.execute(q)
+
+        return self.curs.fetchone()
+
+    @check_session_time_alive
+    def get_client_by_id(self, *args):
+        client_id = args[0][0]
+
+        q = f'select * from clients where id = {client_id};'
+
+        self.curs.execute(q)
+
+        return self.curs.fetchone()
+
+    @check_session_time_alive
+    def get_event_type_by_id(self, *args):
+        id = args[0][0]
+
+        q = f'select * from event_types where id={id}'
+
+        self.curs.execute(q)
+
+        return self.curs.fetchone()
+
+    @check_session_time_alive
+    def get_event_class_by_id(self, *args):
+        id = args[0][0]
+
+        q = f'select * from event_class where id={id};'
+
+        self.curs.execute(q)
+
+        return self.curs.fetchone()

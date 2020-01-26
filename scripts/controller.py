@@ -675,6 +675,89 @@ def adm_stat_session_duration_handler(call):
         logger.write_to_err_log(f'exception in method {method_name} - {err}', 'controller')
 
 
+@bot.callback_query_handler(func=lambda call: call.data == 'confirm_event_requests')
+def confirm_event_requests_handler(call):
+    """
+    Handles command sent to accept event request
+    :param call: callback instance
+    :return: None
+    """
+    try:
+        #   +         +       +          +-        +-          +           +       +           +-              +-              +-
+        request_id, event_id, client_id, title, location, date_starts, date_ends, guests, type_of_event_id, class_of_event_id, staff_needed = model.get_event_request_extended_info()
+        _, client_username, f_name, l_name, company, phone, email = model.get_client_by_id(client_id)
+        inline_kb = types.InlineKeyboardMarkup()
+
+        class_of_event = None
+        type_of_event = None
+
+        if type_of_event_id is not None:
+            _, type_of_event = model.get_type_of_event_by_id(type_of_event_id)
+        if class_of_event_id is not None:
+            _, class_of_event = model.get_class_of_event_by_id(class_of_event_id)
+
+        msg = get_extended_event_info_message((request_id, event_id, client_id, title, location, date_starts, date_ends,
+                                               guests, type_of_event_id, class_of_event_id, staff_needed, type_of_event,
+                                               class_of_event, client_username, f_name, l_name, company, phone, email),
+                                              type_of_action='Заявка на проведення події')
+
+        if title is None:
+            inline_kb.row(types.InlineKeyboardButton(text='Внести назву події', callback_data=f'edit_event_id:{event_id}_title'))
+        if location is None:
+            inline_kb.row(types.InlineKeyboardButton(text='Внести локацію події', callback_data=f'edit_event_id:{event_id}_location'))
+        if type_of_event is None:
+            inline_kb.row(types.InlineKeyboardButton(text='Внести тип події', callback_data=f'edit_event_id:{event_id}_type'))
+        if class_of_event is None:
+            inline_kb.row(types.InlineKeyboardButton(text='Внести клас події', callback_data=f'edit_event_id:{event_id}_class'))
+        if staff_needed is None:
+            inline_kb.row(types.InlineKeyboardButton(text='Внести кількість персоналу', callback_data=f'edit_event_id:{event_id}_staff'))
+
+        back_to_main = types.InlineKeyboardButton(text=f'{emojize(" :back:", use_aliases=True)}Повернутись до меню',
+                                                  callback_data='main_menu')
+        inline_kb.row(back_to_main)
+
+        bot.edit_message_text(chat_id=call.message.chat.id,
+                              message_id=call.message.message_id,
+                              text=msg,
+                              reply_markup=inline_kb)
+
+    except Exception as err:
+        method_name = sys._getframe( ).f_code.co_name
+
+        logger.write_to_log('exception', 'controller')
+        logger.write_to_err_log(f'exception in method {method_name} - {err}', 'controller')
+
+
+def get_extended_event_info_message(params, type_of_action):
+    """
+    Returns string with event details, depends of type of action (accept or change)
+    :param params: set of all needed details
+    :param type_of_action: type of needed msg (accept of change)
+    :return:
+    """
+    request_id, event_id, client_id, title, location, date_starts, date_ends, guests, type_of_event_id, class_of_event_id, staff_needed, type_of_event, class_of_event, client_username, f_name, l_name, company, phone, email = params
+    new_line = '\n'
+
+    msg = f'{emojize(" :dizzy:", use_aliases=True)}{type_of_action}\n' \
+          f'{"-" * 20}\n' \
+          f'{emojize(" :clipboard:", use_aliases=True)}ПІП: {l_name} {f_name}\n' \
+          f'{"Telegram нік клієнта: @" + str(client_username) + new_line if client_username is not None else ""}' \
+          f'{emojize(" :phone:", use_aliases=True)}Номер телефону: {phone}\n' \
+          f'{emojize(" :e-mail:", use_aliases=True) + "e-mail: " + str(email) + new_line if email is not None else ""}' \
+          f'{emojize(" :office:", use_aliases=True) + "Компанія: " + str(company) + new_line if company is not None else ""}' \
+          f'{"-" * 20}\n' \
+          f'{emojize(" :dizzy:", use_aliases=True) + "Назва події: " + str(title) + new_line if title is not None else ""}' \
+          f'{emojize(" :clock4:", use_aliases=True)}Дата події: {date_starts}\n' \
+          f'{emojize(" :clock430:", use_aliases=True)}Дата закінчення: {date_ends}\n' \
+          f'{emojize(" :triangular_flag_on_post:", use_aliases=True) + "Місце проведення: " + str(location) + new_line if location is not None else ""}' \
+          f'{emojize(" :tophat:", use_aliases=True) + "Кількість гостей: " + str(guests) + new_line if guests is not None else ""}' \
+          f'{"Тип події: " + str(type_of_event) + new_line if type_of_event is not None else ""}' \
+          f'{"Клас події: " + str(class_of_event) + new_line if class_of_event is not None else ""}' \
+          f'{emojize(" :busts_in_silhouette:", use_aliases=True) + "Кількість персоналу: " + str(staff_needed) + new_line if staff_needed is not None else ""}'
+
+    return msg
+
+
 def classify_role(func):
     """
     Decorator for classification user role
