@@ -731,7 +731,7 @@ def confirm_event_requests_handler(call):
         logger.write_to_err_log(f'exception in method {method_name} - {err}', 'controller')
 
 
-@bot.callback_query_handler(func=lambda call: call.data.split('update_event_type_id:').__len__() > 0)
+@bot.callback_query_handler(func=lambda call: call.data.split('update_event_type_id:').__len__() > 1)
 def get_event_type(call):
     try:
         id = call.data.split('update_event_type_id:')[1].split('_')[0]
@@ -740,6 +740,31 @@ def get_event_type(call):
         model.update_event_type(id, type_id)
 
         msg = f'{emojize(" :tada:", use_aliases=True)} Тип події оновлено!'
+        inline_kb = types.InlineKeyboardMarkup()
+
+        inline_kb.row(
+            types.InlineKeyboardButton(text='До меню редагування події', callback_data='confirm_event_requests'))
+
+        bot.edit_message_text(chat_id=call.message.chat.id,
+                              message_id=call.message.message_id,
+                              text=msg,
+                              reply_markup=inline_kb)
+    except Exception as err:
+        method_name = sys._getframe( ).f_code.co_name
+
+        logger.write_to_log('exception', 'controller')
+        logger.write_to_err_log(f'exception in method {method_name} - {err}', 'controller')
+
+
+@bot.callback_query_handler(func=lambda call: call.data.split('update_event_class_id:').__len__() > 1)
+def get_event_type(call):
+    try:
+        id = call.data.split('update_event_class_id:')[1].split('_')[0]
+        class_id = call.data.split('update_event_class_id:')[1].split('_set:')[1]
+
+        model.update_event_class(id, class_id)
+
+        msg = f'{emojize(" :tada:", use_aliases=True)} Клас події оновлено!'
         inline_kb = types.InlineKeyboardMarkup()
 
         inline_kb.row(
@@ -794,7 +819,17 @@ def edit_event_handler(call):
                                   text=msg,
                                   reply_markup=inline_kb)
         elif parameter == 'class':
-            pass
+            msg = 'Виберіть клас події:'
+            inline_kb = types.InlineKeyboardMarkup()
+
+            for event_id, event_class in model.get_event_classes_list():
+                inline_kb.add(types.InlineKeyboardButton(text=event_class,
+                                                         callback_data=f'update_event_class_id:{id}_set:{event_id}'))
+
+            bot.edit_message_text(chat_id=call.message.chat.id,
+                                  message_id=call.message.message_id,
+                                  text=msg,
+                                  reply_markup=inline_kb)
         elif parameter == 'staff':
             pass
 

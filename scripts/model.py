@@ -619,11 +619,34 @@ class Model:
             self.logger.write_to_log('exception', 'model')
             self.logger.write_to_err_log(f'exception in method {method_name} - {err}', 'model')
 
+    def get_event_classes_list(self):
+        try:
+            self.logger.write_to_log('requested event classes', 'model')
+
+            return self.db_handler.get_event_classes()
+
+        except Exception as err:
+            method_name = sys._getframe().f_code.co_name
+
+            self.logger.write_to_log('exception', 'model')
+            self.logger.write_to_err_log(f'exception in method {method_name} - {err}', 'model')
+
     def update_event_type(self, id, event_type):
         try:
             self.logger.write_to_log(f'updating event {id} type', 'model')
 
             self.db_handler.update_event_type(id, event_type)
+        except Exception as err:
+            method_name = sys._getframe().f_code.co_name
+
+            self.logger.write_to_log('exception', 'model')
+            self.logger.write_to_err_log(f'exception in method {method_name} - {err}', 'model')
+
+    def update_event_class(self, id, event_class):
+        try:
+            self.logger.write_to_log(f'updating event {id} class', 'model')
+
+            self.db_handler.update_event_class(id, event_class)
         except Exception as err:
             method_name = sys._getframe().f_code.co_name
 

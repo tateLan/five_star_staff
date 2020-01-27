@@ -584,6 +584,15 @@ class DbHandler:
         self.connect.commit()
 
     @check_session_time_alive
+    def update_event_class(self, *args):
+        id, class_of_event = args[0]
+
+        q = f"update events set event_class='{class_of_event}' where id={id};"
+
+        self.curs.execute(q)
+        self.connect.commit()
+
+    @check_session_time_alive
     def get_event_types(self):
         q = 'select * from event_types;'
 
