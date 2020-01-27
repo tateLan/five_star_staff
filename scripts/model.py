@@ -583,3 +583,15 @@ class Model:
 
             self.logger.write_to_log('exception', 'model')
             self.logger.write_to_err_log(f'exception in method {method_name} - {err}', 'model')
+
+    def update_event_location(self, id, latitude, longitude):
+        try:
+            self.logger.write_to_log(f'updating event {id} location', 'model')
+
+            geo = f'latitude:{latitude} longitude:{longitude}'
+            self.db_handler.update_event_location(id, geo)
+        except Exception as err:
+            method_name = sys._getframe().f_code.co_name
+
+            self.logger.write_to_log('exception', 'model')
+            self.logger.write_to_err_log(f'exception in method {method_name} - {err}', 'model')

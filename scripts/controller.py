@@ -14,6 +14,8 @@ notifier = nt.Notifier(bot)
 logger = LogHandler(notifier)
 model = md.Model(bot, logger, notifier)
 
+location_update_queue = {}
+
 
 def init_controller():
     """
@@ -728,6 +730,68 @@ def confirm_event_requests_handler(call):
         logger.write_to_err_log(f'exception in method {method_name} - {err}', 'controller')
 
 
+@bot.callback_query_handler(func=lambda call: call.data.split('edit_event_id:').__len__() > 0)
+def edit_event_handler(call):
+    try:
+        id = call.data.split('edit_event_id:')[1].split('_')[0]
+        parameter = call.data.split('edit_event_id:')[1].split('_')[1]
+
+        if parameter == 'title':
+            pass
+        elif parameter == 'location':
+            msg = f'Відправте боту локацію на якій проходитиме святкування події (використовуйте тільки вбудовані засоби Telegram):'
+            location_request_sent = bot.edit_message_text(chat_id=call.message.chat.id,
+                                          message_id=call.message.message_id,text=msg,
+                                          reply_markup=None)
+            location_update_queue[call.message.chat.id] = id
+
+            bot.register_next_step_handler(location_request_sent, get_event_location)
+        elif parameter == 'type':
+            pass
+        elif parameter == 'class':
+            pass
+        elif parameter == 'staff':
+            pass
+
+    except Exception as err:
+        method_name = sys._getframe( ).f_code.co_name
+
+        logger.write_to_log('exception', 'controller')
+        logger.write_to_err_log(f'exception in method {method_name} - {err}', 'controller')
+
+
+def get_event_location(message):
+    try:
+        event_id = location_update_queue.pop(message.chat.id)
+
+        if message.location is not None:
+            model.update_event_location(event_id, message.location.latitude, message.location.longitude)
+
+            msg = f'{emojize(" :tada:", use_aliases=True)} Локація події оновлена!'
+            inline_kb = types.InlineKeyboardMarkup()
+
+            inline_kb.row(types.InlineKeyboardButton(text='До меню редагування події', callback_data='confirm_event_requests'))
+
+            bot.send_message(chat_id=message.chat.id,
+                                  text=msg,
+                                  reply_markup=inline_kb)
+        else:
+            msg = f'{emojize(" :heavy_exclamation_mark:", use_aliases=True)} Локація події не оновлена! Допускається лише геопозиція засобами Telegram.'
+            inline_kb = types.InlineKeyboardMarkup()
+
+            inline_kb.row(
+                types.InlineKeyboardButton(text='До меню редагування події', callback_data='confirm_event_requests'))
+
+            bot.send_message(chat_id=message.chat.id,
+                             text=msg,
+                             reply_markup=inline_kb)
+    except Exception as err:
+        method_name = sys._getframe( ).f_code.co_name
+
+        logger.write_to_log('exception', 'controller')
+        logger.write_to_err_log(f'exception in method {method_name} - {err}', 'controller')
+
+
 def get_extended_event_info_message(params, type_of_action):
     """
     Returns string with event details, depends of type of action (accept or change)
@@ -844,6 +908,11 @@ def show_main_menu(message, user_role, edit=False):
                 text=f'{emojize(" :dizzy:", use_aliases=True)}{emojize(":white_check_mark:", use_aliases=True)}Підтвердження заявок на події',
                 callback_data='confirm_event_requests')
 
+            modify_events = types.InlineKeyboardButton(
+                text=f'{emojize(" :pencil:", use_aliases=True)}Редагувати деталі події',
+                callback_data='edit_event_details'
+            )
+
             set_main_on_shift = types.InlineKeyboardButton(
                 text=f'{emojize(" :cop:", use_aliases=True)}Призначити головного на зміну',
                 callback_data='set_main_on_shift')
@@ -865,6 +934,7 @@ def show_main_menu(message, user_role, edit=False):
             elif (staff_pending_requests > 0) and (event_pending_requests == 0):
                 inline_kb.row(confirm_requests)
 
+            inline_kb.row(modify_events)
             inline_kb.row(set_main_on_shift, change_main_on_shift)
             inline_kb.row(get_manager_stat)
             inline_kb.row(update)
@@ -895,5 +965,5 @@ def show_main_menu(message, user_role, edit=False):
 
 @bot.message_handler(content_types=['text'])
 def echo_msg(message):
-    bot.send_message(message.chat.id, 'микола, не балуйся тут з своїми ' + message.text)
     bot.send_message(message.chat.id, 'як буде готово, я скажу')
+    bot.send_message(message.chat.id, 'микола, не балуйся тут з своїми ' + message.text)

@@ -494,14 +494,14 @@ class DbHandler:
         Returns list of unaccepted event requests
         :return: list of unaccepted event requests
         """
-        q = 'select * from event_request where staff_processed is null;'
+        q = 'select * from event_request where processed = 0;'
 
         self.curs.execute(q)
         return self.curs.fetchall()
 
     @check_session_time_alive
     def get_event_request(self):
-        q = 'select * from event_request where staff_processed is null limit 1'
+        q = 'select * from event_request where processed = 0 limit 1'
 
         self.curs.execute(q)
 
@@ -520,7 +520,7 @@ class DbHandler:
         q = 'select er.id, e.id, client_id, e.title, location, date_starts, date_ends, guests, ' \
             'type_of_event, event_class, staff_needed  ' \
             'from event_request er left join events e on er.id = e.event_request_id ' \
-            'where staff_processed is null'
+            'where processed = 0'
 
         self.curs.execute(q)
 
@@ -555,3 +555,14 @@ class DbHandler:
         self.curs.execute(q)
 
         return self.curs.fetchone()
+
+    @check_session_time_alive
+    def update_event_location(self, *args):
+        id, location = args[0]
+
+        q = f"update events set location='{location}' where id={id};"
+
+        self.curs.execute(q)
+        self.connect.commit()
+
+
