@@ -731,6 +731,31 @@ def confirm_event_requests_handler(call):
         logger.write_to_err_log(f'exception in method {method_name} - {err}', 'controller')
 
 
+@bot.callback_query_handler(func=lambda call: call.data.split('update_event_type_id:').__len__() > 0)
+def get_event_type(call):
+    try:
+        id = call.data.split('update_event_type_id:')[1].split('_')[0]
+        type_id = call.data.split('update_event_type_id:')[1].split('_set:')[1]
+
+        model.update_event_type(id, type_id)
+
+        msg = f'{emojize(" :tada:", use_aliases=True)} Тип події оновлено!'
+        inline_kb = types.InlineKeyboardMarkup()
+
+        inline_kb.row(
+            types.InlineKeyboardButton(text='До меню редагування події', callback_data='confirm_event_requests'))
+
+        bot.edit_message_text(chat_id=call.message.chat.id,
+                              message_id=call.message.message_id,
+                              text=msg,
+                              reply_markup=inline_kb)
+    except Exception as err:
+        method_name = sys._getframe( ).f_code.co_name
+
+        logger.write_to_log('exception', 'controller')
+        logger.write_to_err_log(f'exception in method {method_name} - {err}', 'controller')
+
+
 @bot.callback_query_handler(func=lambda call: call.data.split('edit_event_id:').__len__() > 0)
 def edit_event_handler(call):
     try:
@@ -757,7 +782,17 @@ def edit_event_handler(call):
 
             bot.register_next_step_handler(location_request_sent, get_event_location)
         elif parameter == 'type':
-            pass
+            msg = 'Виберіть тип події:'
+            inline_kb = types.InlineKeyboardMarkup()
+
+            for event_id, event_type in model.get_event_types_list():
+                inline_kb.add(types.InlineKeyboardButton(text=event_type,
+                                                         callback_data=f'update_event_type_id:{id}_set:{event_id}'))
+
+            bot.edit_message_text(chat_id=call.message.chat.id,
+                                  message_id=call.message.message_id,
+                                  text=msg,
+                                  reply_markup=inline_kb)
         elif parameter == 'class':
             pass
         elif parameter == 'staff':
