@@ -565,4 +565,13 @@ class DbHandler:
         self.curs.execute(q)
         self.connect.commit()
 
+    @check_session_time_alive
+    def update_event_title(self, *args):
+        id, title = args[0]
+
+        q = f"update events set title='{title}' where id={id};"
+
+        self.curs.execute(q)
+        self.connect.commit()
+
 

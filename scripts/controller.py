@@ -15,6 +15,7 @@ logger = LogHandler(notifier)
 model = md.Model(bot, logger, notifier)
 
 location_update_queue = {}
+title_update_queue = {}
 
 
 def init_controller():
@@ -703,15 +704,15 @@ def confirm_event_requests_handler(call):
                                                class_of_event, client_username, f_name, l_name, company, phone, email),
                                               type_of_action='Заявка на проведення події')
 
-        if title is None:
+        if title is None or title == '':
             inline_kb.row(types.InlineKeyboardButton(text='Внести назву події', callback_data=f'edit_event_id:{event_id}_title'))
-        if location is None:
+        if location is None or location == '':
             inline_kb.row(types.InlineKeyboardButton(text='Внести локацію події', callback_data=f'edit_event_id:{event_id}_location'))
-        if type_of_event is None:
+        if type_of_event is None or type_of_event == '':
             inline_kb.row(types.InlineKeyboardButton(text='Внести тип події', callback_data=f'edit_event_id:{event_id}_type'))
-        if class_of_event is None:
+        if class_of_event is None or type_of_event == '':
             inline_kb.row(types.InlineKeyboardButton(text='Внести клас події', callback_data=f'edit_event_id:{event_id}_class'))
-        if staff_needed is None:
+        if staff_needed is None or staff_needed == '':
             inline_kb.row(types.InlineKeyboardButton(text='Внести кількість персоналу', callback_data=f'edit_event_id:{event_id}_staff'))
 
         back_to_main = types.InlineKeyboardButton(text=f'{emojize(" :back:", use_aliases=True)}Повернутись до меню',
@@ -737,7 +738,16 @@ def edit_event_handler(call):
         parameter = call.data.split('edit_event_id:')[1].split('_')[1]
 
         if parameter == 'title':
-            pass
+            msg = 'Відправте назву події:'
+
+            title_request_sent = bot.edit_message_text(chat_id=call.message.chat.id,
+                                                       message_id=call.message.message_id,
+                                                       text=msg,
+                                                       reply_markup=None)
+
+            title_update_queue[call.message.chat.id] = id
+
+            bot.register_next_step_handler(title_request_sent, get_event_title)
         elif parameter == 'location':
             msg = f'Відправте боту локацію на якій проходитиме святкування події (використовуйте тільки вбудовані засоби Telegram):'
             location_request_sent = bot.edit_message_text(chat_id=call.message.chat.id,
@@ -753,6 +763,38 @@ def edit_event_handler(call):
         elif parameter == 'staff':
             pass
 
+    except Exception as err:
+        method_name = sys._getframe( ).f_code.co_name
+
+        logger.write_to_log('exception', 'controller')
+        logger.write_to_err_log(f'exception in method {method_name} - {err}', 'controller')
+
+
+def get_event_title(message):
+    try:
+        event_id = title_update_queue.pop(message.chat.id)
+
+        if message.text is not None:
+            model.update_event_title(event_id, message.text)
+            msg = f'{emojize(" :tada:", use_aliases=True)} Назва події оновлена!'
+            inline_kb = types.InlineKeyboardMarkup()
+
+            inline_kb.row(
+                types.InlineKeyboardButton(text='До меню редагування події', callback_data='confirm_event_requests'))
+
+            bot.send_message(chat_id=message.chat.id,
+                             text=msg,
+                             reply_markup=inline_kb)
+        else:
+            msg = f'{emojize(" :heavy_exclamation_mark:", use_aliases=True)} Назва події не оновлена! Допускається лише текст!'
+            inline_kb = types.InlineKeyboardMarkup()
+
+            inline_kb.row(
+                types.InlineKeyboardButton(text='До меню редагування події', callback_data='confirm_event_requests'))
+
+            bot.send_message(chat_id=message.chat.id,
+                             text=msg,
+                             reply_markup=inline_kb)
     except Exception as err:
         method_name = sys._getframe( ).f_code.co_name
 
@@ -810,7 +852,7 @@ def get_extended_event_info_message(params, type_of_action):
           f'{emojize(" :e-mail:", use_aliases=True) + "e-mail: " + str(email) + new_line if email is not None else ""}' \
           f'{emojize(" :office:", use_aliases=True) + "Компанія: " + str(company) + new_line if company is not None else ""}' \
           f'{"-" * 20}\n' \
-          f'{emojize(" :dizzy:", use_aliases=True) + "Назва події: " + str(title) + new_line if title is not None else ""}' \
+          f'{emojize(" :dizzy:", use_aliases=True) + "Назва події: " + str(title) + new_line if title is not None and title != "" else ""}' \
           f'{emojize(" :clock4:", use_aliases=True)}Дата події: {date_starts}\n' \
           f'{emojize(" :clock430:", use_aliases=True)}Дата закінчення: {date_ends}\n' \
           f'{emojize(" :triangular_flag_on_post:", use_aliases=True) + "Місце проведення: " + str(location) + new_line if location is not None else ""}' \
