@@ -163,6 +163,14 @@ class DbHandler:
         self.connect.commit()
 
     @check_session_time_alive
+    def update_staff_rate(self, *args):
+        id, rate = args[0]
+        q = f'update staff set rate={rate} where id={id};'
+
+        self.curs.execute(q)
+        self.connect.commit()
+
+    @check_session_time_alive
     def get_roles_list(self):
         """
         Returns list of roles
@@ -607,3 +615,16 @@ class DbHandler:
         self.curs.execute(q)
 
         return self.curs.fetchall()
+
+    @check_session_time_alive
+    def get_event_request_extended_info_by_id(self, *args):
+        event_id = args[0][0]
+
+        q = f'select er.id, e.id, client_id, e.title, location, date_starts, date_ends, guests, ' \
+            f'type_of_event, event_class, staff_needed  ' \
+            f'from event_request er left join events e on er.id = e.event_request_id ' \
+            f'where e.id = {event_id};'
+
+        self.curs.execute(q)
+
+        return self.curs.fetchone()

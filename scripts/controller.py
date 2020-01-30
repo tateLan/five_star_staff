@@ -16,6 +16,7 @@ model = md.Model(bot, logger, notifier)
 
 location_update_queue = {}
 title_update_queue = {}
+staff_update_queue = {}
 
 
 def init_controller():
@@ -686,8 +687,10 @@ def confirm_event_requests_handler(call):
     :return: None
     """
     try:
-        #   +         +       +          +-        +-          +           +       +           +-              +-              +-
-        request_id, event_id, client_id, title, location, date_starts, date_ends, guests, type_of_event_id, class_of_event_id, staff_needed = model.get_event_request_extended_info()
+        #
+        # TODO: client bot must guarantee next values to be entered: date starts, date ends and number of guests
+        #
+        request_id, event_id, client_id, title, location, date_starts, date_ends, guests, type_of_event_id, class_of_event_id, _ = model.get_event_request_extended_info()
         _, client_username, f_name, l_name, company, phone, email = model.get_client_by_id(client_id)
         inline_kb = types.InlineKeyboardMarkup()
 
@@ -697,10 +700,10 @@ def confirm_event_requests_handler(call):
         if type_of_event_id is not None:
             _, type_of_event = model.get_type_of_event_by_id(type_of_event_id)
         if class_of_event_id is not None:
-            _, class_of_event = model.get_class_of_event_by_id(class_of_event_id)
+            _, class_of_event, _ = model.get_class_of_event_by_id(class_of_event_id)
 
         msg = get_extended_event_info_message((request_id, event_id, client_id, title, location, date_starts, date_ends,
-                                               guests, type_of_event_id, class_of_event_id, staff_needed, type_of_event,
+                                               guests, type_of_event_id, class_of_event_id, type_of_event,
                                                class_of_event, client_username, f_name, l_name, company, phone, email),
                                               type_of_action='Заявка на проведення події')
 
@@ -712,8 +715,10 @@ def confirm_event_requests_handler(call):
             inline_kb.row(types.InlineKeyboardButton(text='Внести тип події', callback_data=f'edit_event_id:{event_id}_type'))
         if class_of_event is None or type_of_event == '':
             inline_kb.row(types.InlineKeyboardButton(text='Внести клас події', callback_data=f'edit_event_id:{event_id}_class'))
-        if staff_needed is None or staff_needed == '':
-            inline_kb.row(types.InlineKeyboardButton(text='Внести кількість персоналу', callback_data=f'edit_event_id:{event_id}_staff'))
+
+        if (title is not None and title != '') and (location is not None and location != '') and (type_of_event_id is not None and type_of_event_id != '') and (class_of_event_id is not None and class_of_event_id != ''):
+            inline_kb.row(types.InlineKeyboardButton(text=f'{emojize(" :moneybag:", use_aliases=True)}Розрахувати ціну', callback_data='calculate_event_price'))
+
 
         back_to_main = types.InlineKeyboardButton(text=f'{emojize(" :back:", use_aliases=True)}Повернутись до меню',
                                                   callback_data='main_menu')
@@ -781,7 +786,7 @@ def get_event_type(call):
         logger.write_to_err_log(f'exception in method {method_name} - {err}', 'controller')
 
 
-@bot.callback_query_handler(func=lambda call: call.data.split('edit_event_id:').__len__() > 0)
+@bot.callback_query_handler(func=lambda call: call.data.split('edit_event_id:').__len__() > 1)
 def edit_event_handler(call):
     try:
         id = call.data.split('edit_event_id:')[1].split('_')[0]
@@ -822,7 +827,7 @@ def edit_event_handler(call):
             msg = 'Виберіть клас події:'
             inline_kb = types.InlineKeyboardMarkup()
 
-            for event_id, event_class in model.get_event_classes_list():
+            for event_id, event_class, _ in model.get_event_classes_list():
                 inline_kb.add(types.InlineKeyboardButton(text=event_class,
                                                          callback_data=f'update_event_class_id:{id}_set:{event_id}'))
 
@@ -830,9 +835,58 @@ def edit_event_handler(call):
                                   message_id=call.message.message_id,
                                   text=msg,
                                   reply_markup=inline_kb)
-        elif parameter == 'staff':
-            pass
+    except Exception as err:
+        method_name = sys._getframe( ).f_code.co_name
 
+        logger.write_to_log('exception', 'controller')
+        logger.write_to_err_log(f'exception in method {method_name} - {err}', 'controller')
+
+
+@bot.callback_query_handler(func=lambda call: call.data == 'calculate_event_price')
+def calculate_event_price_handler(call):
+    """
+    Handles event price calculation request
+    :param call: callback instance
+    :return: None
+    """
+    try:
+        event_id = call.message.text.split('id події:')[1].split('\n')[0]
+
+        price, professional_staff, middle_staff, new_staff = model.calculate_event_price_and_parameters(event_id)
+        new_line = '\n'
+        msg = f'Ціна та параметри обслуговування події id:{event_id}:\n' \
+              f'{"-" * 20}\n' \
+              f'Загальна кількість офіціантів: {professional_staff + middle_staff + new_staff}\n' \
+              f'{emojize(" :full_moon:", use_aliases=True) + "Професійних офіціантів: " + str(professional_staff) + new_line if professional_staff > 0 else ""}' \
+              f'{emojize(" :last_quarter_moon:", use_aliases=True) + "Офіціантів середнього рівня: " + str(middle_staff) + new_line if middle_staff > 0 else ""}' \
+              f'{emojize(" :new_moon:", use_aliases=True) + "Офіціантів початківців: " + str(new_staff) + new_line if new_staff > 0 else ""}' \
+              f'{"-" * 20}\n' \
+              f'{emojize(" :moneybag:", use_aliases=True)}Ціна обслуговування події: *{round(price, 3)}грн.*'
+
+        inline_kb = types.InlineKeyboardMarkup()
+        approve_price = types.InlineKeyboardButton(text=f'{emojize(" :white_check_mark:", use_aliases=True)}Підтвердити ціну',
+                                                   callback_data='approve_event_price')
+        back_to_main = types.InlineKeyboardButton(text=f'{emojize(" :back:", use_aliases=True)}Повернутись до меню',
+                                                  callback_data='main_menu')
+        inline_kb.row(approve_price)
+        inline_kb.row(back_to_main)
+
+        bot.edit_message_text(chat_id=call.message.chat.id,
+                              message_id=call.message.message_id,
+                              text=msg,
+                              parse_mode='Markdown',
+                              reply_markup=inline_kb)
+    except Exception as err:
+        method_name = sys._getframe( ).f_code.co_name
+
+        logger.write_to_log('exception', 'controller')
+        logger.write_to_err_log(f'exception in method {method_name} - {err}', 'controller')
+
+
+@bot.callback_query_handler(func=lambda call: call.data == 'approve_event_price')
+def approve_event_price_handler(call):
+    try:
+        pass
     except Exception as err:
         method_name = sys._getframe( ).f_code.co_name
 
@@ -911,7 +965,7 @@ def get_extended_event_info_message(params, type_of_action):
     :param type_of_action: type of needed msg (accept of change)
     :return:
     """
-    request_id, event_id, client_id, title, location, date_starts, date_ends, guests, type_of_event_id, class_of_event_id, staff_needed, type_of_event, class_of_event, client_username, f_name, l_name, company, phone, email = params
+    request_id, event_id, client_id, title, location, date_starts, date_ends, guests, type_of_event_id, class_of_event_id, type_of_event, class_of_event, client_username, f_name, l_name, company, phone, email = params
     new_line = '\n'
 
     msg = f'{emojize(" :dizzy:", use_aliases=True)}{type_of_action}\n' \
@@ -922,6 +976,7 @@ def get_extended_event_info_message(params, type_of_action):
           f'{emojize(" :e-mail:", use_aliases=True) + "e-mail: " + str(email) + new_line if email is not None else ""}' \
           f'{emojize(" :office:", use_aliases=True) + "Компанія: " + str(company) + new_line if company is not None else ""}' \
           f'{"-" * 20}\n' \
+          f'id події: {event_id}\n' \
           f'{emojize(" :dizzy:", use_aliases=True) + "Назва події: " + str(title) + new_line if title is not None and title != "" else ""}' \
           f'{emojize(" :clock4:", use_aliases=True)}Дата події: {date_starts}\n' \
           f'{emojize(" :clock430:", use_aliases=True)}Дата закінчення: {date_ends}\n' \
@@ -929,7 +984,6 @@ def get_extended_event_info_message(params, type_of_action):
           f'{emojize(" :tophat:", use_aliases=True) + "Кількість гостей: " + str(guests) + new_line if guests is not None else ""}' \
           f'{"Тип події: " + str(type_of_event) + new_line if type_of_event is not None else ""}' \
           f'{"Клас події: " + str(class_of_event) + new_line if class_of_event is not None else ""}' \
-          f'{emojize(" :busts_in_silhouette:", use_aliases=True) + "Кількість персоналу: " + str(staff_needed) + new_line if staff_needed is not None else ""}'
 
     return msg
 

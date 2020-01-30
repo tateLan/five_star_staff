@@ -1,6 +1,9 @@
 import db_handler as db
 from datetime import datetime
 import sys
+import config
+import math
+import geopy.distance
 
 
 class Model:
@@ -452,6 +455,14 @@ class Model:
             mysql_date = f'{now.year}-{now.month}-{now.day} {now.time().hour}:{now.time().minute}:00'
 
             self.db_handler.modify_qualification_request(request_id, qualification_id)
+
+            _, qualification_name = self.db_handler.get_qualification_by_id(qualification_id)
+
+            if qualification_name == 'професіонал':
+                self.db_handler.update_staff_rate(user_id, config.PRO_RATE)
+            elif qualification_name == 'середній рівень':
+                self.db_handler.update_staff_rate(user_id, config.MIDDLE_RATE)
+
             self.db_handler.accept_qualification_request(request_id, admin_id, mysql_date)
             self.logger.write_to_log(f'qualification request id:{request_id} confirmed', admin_id)
             self.db_handler.update_staff_qualification(user_id, qualification_id)
@@ -647,6 +658,69 @@ class Model:
             self.logger.write_to_log(f'updating event {id} class', 'model')
 
             self.db_handler.update_event_class(id, event_class)
+        except Exception as err:
+            method_name = sys._getframe().f_code.co_name
+
+            self.logger.write_to_log('exception', 'model')
+            self.logger.write_to_err_log(f'exception in method {method_name} - {err}', 'model')
+
+    def calculate_event_price_and_parameters(self, event_id):
+        """
+        Returns set of paramters needed to register event
+        :param event_id: id of event to calculate
+        :return: set of (price, number of professional staff, middle lvl staff, new staff)
+        """
+        try:
+            price = 0
+            proffesional_staff = 0
+            middle_staff = 0
+            new_staff = 0
+            _, req_id, title, client_id, location, date_starts, date_ends, guests, event_type_id, event_class_id, _ = self.db_handler.get_event_request_extended_info_by_id(event_id)
+            _, event_class_name, guests_per_waiter = self.db_handler.get_event_class_by_id(event_class_id)
+
+            distance_in_km = self.get_geopy_diatance(location)
+            price = distance_in_km * config.PRICE_OF_KM
+            num_of_staff = math.ceil(guests / guests_per_waiter)
+
+            if event_class_name == 'найвищий':  #85% of pro
+                new_staff = 0
+                proffesional_staff = math.ceil(num_of_staff * 0.85)
+                middle_staff = num_of_staff - proffesional_staff
+            elif event_class_name == 'високий':     #75% of pro
+                new_staff = 0
+                proffesional_staff = math.ceil(num_of_staff * 0.75)
+                middle_staff = num_of_staff - proffesional_staff
+            elif event_class_name == 'середній':
+                new_staff = round(num_of_staff * 0.2)
+                middle_staff = num_of_staff - new_staff
+            elif event_class_name == 'початковий':
+                middle_staff = math.ceil(num_of_staff * 0.3)
+                new_staff = round(num_of_staff - middle_staff)
+
+            hours_of_shift = (date_ends - date_starts).seconds / 3600
+
+            price += proffesional_staff * config.PRO_RATE * hours_of_shift
+            price += middle_staff * config.MID_RATE * hours_of_shift
+            price += new_staff * config.NEW_RATE * hours_of_shift
+
+            return (price,proffesional_staff,middle_staff,new_staff)
+        except Exception as err:
+            method_name = sys._getframe().f_code.co_name
+
+            self.logger.write_to_log('exception', 'model')
+            self.logger.write_to_err_log(f'exception in method {method_name} - {err}', 'model')
+
+    def get_geopy_diatance(self, location):
+        """
+        Returns distance in km to place where event going to be
+        :param location: string with location of event
+        :return: distance in km
+        """
+        try:
+            event = (float(location.split('latitude:')[1].split(' ')[0]), float(location.split('longitude:')[1]))
+            base = (float(config.OFFICE_COORDINATES[0]), float(config.OFFICE_COORDINATES[1]))
+
+            return geopy.distance.vincenty(event, base).km
         except Exception as err:
             method_name = sys._getframe().f_code.co_name
 
