@@ -726,3 +726,59 @@ class Model:
 
             self.logger.write_to_log('exception', 'model')
             self.logger.write_to_err_log(f'exception in method {method_name} - {err}', 'model')
+
+    def accept_event_price(self, event_id, price, pro, mid, beginers, processed_staff_id, currency):
+        try:
+            self.logger.write_to_log(f'price about event {event_id} being updated', 'model')
+            self.notifier.notify_about_price_changing(event_id)
+
+            self.update_event_request_processed(event_id, processed_staff_id)
+            currencies = self.db_handler.get_currencies()
+            currency_id = 0
+
+            for id, name in currencies:
+                if name == currency:
+                    currency_id = id
+                    break
+
+            self.db_handler.update_event_price_and_staff(event_id, price, currency_id, int(pro)+int(mid)+int(beginers))
+            self.logger.write_to_log('event data updated with price, currency and staff number', 'model')
+
+            self.create_shift(event_id, int(pro), int(mid), int(beginers))
+        except Exception as err:
+            method_name = sys._getframe().f_code.co_name
+
+            self.logger.write_to_log('exception', 'model')
+            self.logger.write_to_err_log(f'exception in method {method_name} - {err}', 'model')
+
+    def update_event_request_processed(self, event_id, processed_staff_id):
+        try:
+            self.logger.write_to_log('requested event request id', 'model')
+            event_request_id = self.db_handler.get_event_request_id_by_event_id(event_id)[0]
+
+            self.db_handler.update_event_request_accepted(event_request_id, processed_staff_id)
+            self.logger.write_to_log(f'event request {event_request_id} updated', 'model')
+        except Exception as err:
+            method_name = sys._getframe().f_code.co_name
+
+            self.logger.write_to_log('exception', 'model')
+            self.logger.write_to_err_log(f'exception in method {method_name} - {err}', 'model')
+
+    def create_shift(self, event_id, pro, mid, beginner):
+        """
+        Creates shift instance
+        :param event_id: id of event, on which shift based
+        :param pro: number of professional staff
+        :param mid: number of middle staff
+        :param beginner: number of beginners staff
+        :return: None
+        """
+        try:
+            self.db_handler.create_shift(event_id, pro, mid, beginner)
+            self.logger.write_to_log('shift created', 'model')
+        except Exception as err:
+            method_name = sys._getframe().f_code.co_name
+
+            self.logger.write_to_log('exception', 'model')
+            self.logger.write_to_err_log(f'exception in method {method_name} - {err}', 'model')
+

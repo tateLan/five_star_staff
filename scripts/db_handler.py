@@ -628,3 +628,67 @@ class DbHandler:
         self.curs.execute(q)
 
         return self.curs.fetchone()
+
+    @check_session_time_alive
+    def get_event_request_id_by_event_id(self, *args):
+        event_id = args[0][0]
+
+        q = f'select event_request_id from events where id={event_id}'
+
+        self.curs.execute(q)
+
+        return self.curs.fetchone()
+
+    @check_session_time_alive
+    def update_event_request_accepted(self, *args):
+        """
+        :param args: event request id, staf telegram id (manager)
+        :return: None
+        """
+        event_request_id, staff_processed = args[0]
+
+        q = f'update event_request set staff_processed={staff_processed}, processed=1 where id={event_request_id};'
+
+        self.curs.execute(q)
+
+        self.connect.commit()
+
+    @check_session_time_alive
+    def get_currencies(self):
+        q = 'select * from curency;'
+
+        self.curs.execute(q)
+
+        return self.curs.fetchall()
+
+    @check_session_time_alive
+    def update_event_price_and_staff(self, *args):
+        """
+        :param args: event id, price, curency id, staff needed
+        :return:
+        """
+        event_id, price, currency_id, staff_needed = args[0]
+
+        q = f'update events set price={price}, staff_needed={staff_needed}, curency={currency_id} where id={event_id};'
+
+        self.curs.execute(q)
+        self.connect.commit()
+
+    @check_session_time_alive
+    def create_shift(self, *args):
+        """
+        :param args: event id, number of professionals, middles and beginners
+        :return: None
+        """
+        event_id, pro, mid, beg = args[0]
+
+        q = f'insert into shift(event_id, profesionals_number, middles_number, beginers_number)' \
+            f'values ({event_id}, {pro}, {mid}, {beg});'
+
+        self.curs.execute(q)
+        self.connect.commit()
+
+    @check_session_time_alive
+    def get_upcoming_shifts(self):
+        pass
+

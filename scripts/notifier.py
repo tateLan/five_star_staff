@@ -23,3 +23,6 @@ class Notifier:
     def notify_user_about_accepted_request(self, user_id, request_type):
         # TODO: implement user notification
         pass
+
+    def notify_about_price_changing(self, event_id):
+        pass

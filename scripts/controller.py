@@ -886,7 +886,25 @@ def calculate_event_price_handler(call):
 @bot.callback_query_handler(func=lambda call: call.data == 'approve_event_price')
 def approve_event_price_handler(call):
     try:
-        pass
+        event_id = call.message.text.split('id:')[1].split('\n')[0].replace(':', '')
+        pro_staff = call.message.text.split('Професійних офіціантів: ')[1].split('\n')[0] if call.message.text.split('Професійних офіціантів: ').__len__() > 1 else 0
+        mid_staff = call.message.text.split('Офіціантів середнього рівня: ')[1].split('\n')[0] if call.message.text.split('Офіціантів середнього рівня: ').__len__() > 1 else 0
+        beginner_staff = call.message.text.split('Офіціантів початківців: ')[1].split('\n')[0] if call.message.text.split('Офіціантів початківців: ').__len__() > 1 else 0
+        price = call.message.text.split('💰Ціна обслуговування події: ')[1].split('грн')[0]
+
+        model.accept_event_price(event_id, price, pro_staff, mid_staff, beginner_staff, call.message.chat.id, 'uah')
+
+        msg = f'{emojize(" :tada:", use_aliases=True)}Дані про подію було внесено. Клієнта буде сповіщено про зміну ціни'
+        inline_kb = types.InlineKeyboardMarkup()
+
+        inline_kb.add(types.InlineKeyboardButton(text=f'{emojize(" :back:", use_aliases=True)}Повернутись до меню',
+                                                  callback_data='main_menu'))
+
+        bot.edit_message_text(chat_id=call.message.chat.id,
+                              message_id=call.message.message_id,
+                              text=msg,
+                              reply_markup=inline_kb)
+
     except Exception as err:
         method_name = sys._getframe( ).f_code.co_name
 
