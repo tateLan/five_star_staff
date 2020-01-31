@@ -912,6 +912,30 @@ def approve_event_price_handler(call):
         logger.write_to_err_log(f'exception in method {method_name} - {err}', 'controller')
 
 
+def check_shifts_with_supervisor(shifts):
+    """
+    Counts number of shifts with supervisors and without em
+    :param shifts: list of upcoming shifth
+    :return: number of shifth with and without supervisor
+    """
+    try:
+        with_super = 0
+        without_super = 0
+
+        for _,_,_,_,_,sup in shifts:
+            if sup is not None and sup != '':
+                with_super += 1
+            if sup is None or sup == '':
+                without_super +=1
+
+        return with_super, without_super
+    except Exception as err:
+        method_name = sys._getframe( ).f_code.co_name
+
+        logger.write_to_log('exception', 'controller')
+        logger.write_to_err_log(f'exception in method {method_name} - {err}', 'controller')
+
+
 def get_event_title(message):
     try:
         event_id = title_update_queue.pop(message.chat.id)
@@ -1072,14 +1096,18 @@ def show_main_menu(message, user_role, edit=False):
             logger.write_to_log('requested manager menu', message.chat.id)
             staff_pending_requests = model.get_unaccepted_request_count()
             event_pending_requests = model.get_unaccepted_event_requests_count()
+            upcoming_events = model.get_upcoming_events()
+            upcoming_shifts = model.get_upcoming_shifts()
 
             staff_requests_str = f'{emojize(" :busts_in_silhouette:", use_aliases=True)}{emojize(":negative_squared_cross_mark:", use_aliases=True) if staff_pending_requests > 0 else emojize(" :white_check_mark:", use_aliases=True)} Не підтверджених заявок персоналу{(": " + str(staff_pending_requests)) if staff_pending_requests > 0 else " немає"}'
             event_requests_str = f'{emojize(" :dizzy:", use_aliases=True)}{emojize(":negative_squared_cross_mark:", use_aliases=True) if event_pending_requests > 0 else emojize(" :white_check_mark:", use_aliases=True)} Не підтверджених заявок на події{(": " + str(event_pending_requests)) if event_pending_requests > 0 else " немає"}'
+            upcoming_shifts_str = f'{emojize(" :open_file_folder:", use_aliases=True)}Змін на черзі: {upcoming_shifts.__len__()}'
 
             msg = f'Меню менеджера\n' \
                   f'{"-" * 20}\n' \
                   f'{staff_requests_str}\n' \
-                  f'{event_requests_str}\n'
+                  f'{event_requests_str}\n' \
+                  f'{upcoming_shifts_str}\n'
 
 
             inline_kb = types.InlineKeyboardMarkup(row_width=1)
@@ -1118,8 +1146,17 @@ def show_main_menu(message, user_role, edit=False):
             elif (staff_pending_requests > 0) and (event_pending_requests == 0):
                 inline_kb.row(confirm_requests)
 
-            inline_kb.row(modify_events)
-            inline_kb.row(set_main_on_shift, change_main_on_shift)
+            if upcoming_events.__len__() > 0:
+                inline_kb.row(modify_events)
+
+            with_supervisor, without_supervisor = check_shifts_with_supervisor(upcoming_shifts)
+
+            if 0 < upcoming_shifts.__len__() == with_supervisor:
+                inline_kb.row(change_main_on_shift)
+            elif 0 < upcoming_shifts.__len__() == without_supervisor:
+                inline_kb.row(set_main_on_shift)
+            elif 0 < upcoming_shifts.__len__() and (without_supervisor + with_supervisor) == upcoming_shifts.__len__():
+                inline_kb.row(set_main_on_shift, change_main_on_shift)
             inline_kb.row(get_manager_stat)
             inline_kb.row(update)
 

@@ -689,6 +689,27 @@ class DbHandler:
         self.connect.commit()
 
     @check_session_time_alive
+    def get_upcoming_events(self):
+        """
+        Returns all events which didnt start yet
+        :return: list of events
+        """
+        q = 'select * from events where date_starts > now()'
+
+        self.curs.execute(q)
+
+        return self.curs.fetchall()
+
+    @check_session_time_alive
     def get_upcoming_shifts(self):
-        pass
+        """
+        :return:list of shifts which is yet to start
+        """
+        q = 'select s.id, s.event_id, s.profesionals_number, s.middles_number, s.beginers_number, s.supervisor ' \
+            'from shift s left join events e on s.event_id = e.id ' \
+            'where e.date_starts > now()'
+
+        self.curs.execute(q)
+
+        return self.curs.fetchall()
 

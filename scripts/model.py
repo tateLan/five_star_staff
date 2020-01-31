@@ -782,3 +782,26 @@ class Model:
             self.logger.write_to_log('exception', 'model')
             self.logger.write_to_err_log(f'exception in method {method_name} - {err}', 'model')
 
+    def get_upcoming_events(self):
+        try:
+            events = self.db_handler.get_upcoming_events()
+            self.logger.write_to_log('upcoming events got', 'model')
+            return events
+        except Exception as err:
+            method_name = sys._getframe().f_code.co_name
+
+            self.logger.write_to_log('exception', 'model')
+            self.logger.write_to_err_log(f'exception in method {method_name} - {err}', 'model')
+
+    def get_upcoming_shifts(self):
+        try:
+            shifts = self.db_handler.get_upcoming_shifts()
+
+            self.logger.write_to_log('upcoming shifts got', 'model')
+            return shifts
+        except Exception as err:
+            method_name = sys._getframe().f_code.co_name
+
+            self.logger.write_to_log('exception', 'model')
+            self.logger.write_to_err_log(f'exception in method {method_name} - {err}', 'model')
+
