@@ -754,10 +754,16 @@ class Model:
                     currency_id = id
                     break
 
+            shift_id = self.db_handler.get_event_id_from_shift(event_id)[0]
+
             self.db_handler.update_event_price_and_staff(event_id, price, currency_id, int(pro)+int(mid)+int(beginers))
             self.logger.write_to_log('event data updated with price, currency and staff number', 'model')
 
-            self.create_shift(event_id, int(pro), int(mid), int(beginers))
+            if shift_id is None:
+                self.create_shift(event_id, int(pro), int(mid), int(beginers))
+            else:
+                self.update_shift(shift_id, int(pro), int(mid), int(beginers))
+
         except Exception as err:
             method_name = sys._getframe().f_code.co_name
 
@@ -789,6 +795,24 @@ class Model:
         try:
             self.db_handler.create_shift(event_id, pro, mid, beginner)
             self.logger.write_to_log('shift created', 'model')
+        except Exception as err:
+            method_name = sys._getframe().f_code.co_name
+
+            self.logger.write_to_log('exception', 'model')
+            self.logger.write_to_err_log(f'exception in method {method_name} - {err}', 'model')
+
+    def update_shift(self, shift_id, pro, mid, beginner):
+        """
+        Updates shift instance if price updates
+        :param shift_id: id of shift
+        :param pro: number of professionals
+        :param mid:number of middles
+        :param beginner:number of beginners
+        :return: None
+        """
+        try:
+            self.db_handler.update_shift_by_id(shift_id, pro, mid, beginner)
+            self.logger.write_to_log('shift updated', 'model')
         except Exception as err:
             method_name = sys._getframe().f_code.co_name
 
@@ -842,4 +866,11 @@ class Model:
             self.logger.write_to_log('exception', 'model')
             self.logger.write_to_err_log(f'exception in method {method_name} - {err}', 'model')
 
+    def is_event_processed(self, event_id):
+        try:
+            pass
+        except Exception as err:
+            method_name = sys._getframe().f_code.co_name
 
+            self.logger.write_to_log('exception', 'model')
+            self.logger.write_to_err_log(f'exception in method {method_name} - {err}', 'model')

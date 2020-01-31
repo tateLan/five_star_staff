@@ -731,3 +731,25 @@ class DbHandler:
 
         self.curs.execute(q)
         self.connect.commit()
+
+    @check_session_time_alive
+    def get_event_id_from_shift(self, *args):
+        event_id = args[0][0]
+
+        q = f'select id from shift where event_id={event_id};'
+
+        self.curs.execute(q)
+
+        return self.curs.fetchone()
+
+    @check_session_time_alive
+    def update_shift_by_id(self, *args):
+        shift_id, pro, mid, beg = args[0]
+
+        q = f'update shift set profesionals_number={pro}, middles_number={mid}, beginers_number={beg} where id={shift_id};'
+
+        self.curs.execute(q)
+        self.connect.commit()
+
+
+

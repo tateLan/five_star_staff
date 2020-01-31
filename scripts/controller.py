@@ -773,8 +773,13 @@ def get_event_type(call):
         msg = f'{emojize(" :tada:", use_aliases=True)} Тип події оновлено!'
         inline_kb = types.InlineKeyboardMarkup()
 
-        inline_kb.row(
-            types.InlineKeyboardButton(text='До меню редагування події', callback_data='confirm_event_requests'))
+        if model.is_event_processed(id):
+            inline_kb.row(
+                types.InlineKeyboardButton(text='До меню редагування події', callback_data='confirm_event_requests'))
+        else:
+            inline_kb.row(
+                types.InlineKeyboardButton(text='До меню редагування події', callback_data='edit_event_details')
+            )
 
         bot.edit_message_text(chat_id=call.message.chat.id,
                               message_id=call.message.message_id,
@@ -798,8 +803,13 @@ def get_event_type(call):
         msg = f'{emojize(" :tada:", use_aliases=True)} Клас події оновлено!'
         inline_kb = types.InlineKeyboardMarkup()
 
-        inline_kb.row(
-            types.InlineKeyboardButton(text='До меню редагування події', callback_data='confirm_event_requests'))
+        if model.is_event_processed(id):
+            inline_kb.row(
+                types.InlineKeyboardButton(text='До меню редагування події', callback_data='confirm_event_requests'))
+        else:
+            inline_kb.row(
+                types.InlineKeyboardButton(text='До меню редагування події', callback_data='edit_event_details')
+            )
 
         bot.edit_message_text(chat_id=call.message.chat.id,
                               message_id=call.message.message_id,
@@ -948,16 +958,14 @@ def edit_event_details_handler(call):
     try:
         events = model.get_upcoming_events()
 
-        msg = 'Виберіть подію, яку необхідно редагувати:'
+        msg = 'Виберіть подію, яку необхідно редагувати:(якщо вам необхідно ' \
+              'повернутися до головного меню, все одно зайдіть в будь-яку подію, ' \
+              'та  натисніть на \'перерахувати ціну\')'
         inline_kb = types.InlineKeyboardMarkup()
 
         for event_id, req_id, title, _, date_starts, _, _, _, _, _, _, _, _ in events:
             _, _, fn, ln, _, _, _ = model.get_client_by_event_request_id(req_id)
             inline_kb.add(types.InlineKeyboardButton(text=f'{title} {fn} {ln} {date_starts.date()}', callback_data=f'modify_event_id:{event_id}'))
-
-        back_to_main = types.InlineKeyboardButton(text=f'{emojize(" :back:", use_aliases=True)}Повернутись до меню',
-                                                  callback_data='main_menu')
-        inline_kb.add(back_to_main)
 
         bot.edit_message_text(chat_id=call.message.chat.id,
                               message_id=call.message.message_id,
@@ -994,9 +1002,12 @@ def modify_event_id_handler(call):
 
         inline_kb = types.InlineKeyboardMarkup()
 
-        back_to_main = types.InlineKeyboardButton(text=f'{emojize(" :back:", use_aliases=True)}Повернутись до меню',
-                                                  callback_data='main_menu')
-        inline_kb.row(back_to_main)
+        inline_kb.row(types.InlineKeyboardButton(text='Внести назву події', callback_data=f'edit_event_id:{event_id}_title'))
+        inline_kb.row(types.InlineKeyboardButton(text='Внести локацію події', callback_data=f'edit_event_id:{event_id}_location'))
+        inline_kb.row(types.InlineKeyboardButton(text='Внести тип події', callback_data=f'edit_event_id:{event_id}_type'))
+        inline_kb.row(types.InlineKeyboardButton(text='Внести клас події', callback_data=f'edit_event_id:{event_id}_class'))
+        inline_kb.row(types.InlineKeyboardButton(text=f'{emojize(" :moneybag:", use_aliases=True)}Перерахувати вартість події',
+                                                  callback_data='calculate_event_price'))
 
         bot.edit_message_text(chat_id=call.message.chat.id,
                               message_id=call.message.message_id,
@@ -1043,8 +1054,11 @@ def get_event_title(message):
             msg = f'{emojize(" :tada:", use_aliases=True)} Назва події оновлена!'
             inline_kb = types.InlineKeyboardMarkup()
 
-            inline_kb.row(
-                types.InlineKeyboardButton(text='До меню редагування події', callback_data='confirm_event_requests'))
+            if model.is_event_processed(id):
+                inline_kb.row(
+                    types.InlineKeyboardButton(text='До меню редагування події', callback_data='confirm_event_requests'))
+            else:
+                inline_kb.row(types.InlineKeyboardButton(text='До меню редагування події', callback_data='edit_event_details'))
 
             bot.send_message(chat_id=message.chat.id,
                              text=msg,
@@ -1075,8 +1089,10 @@ def get_event_location(message):
 
             msg = f'{emojize(" :tada:", use_aliases=True)} Локація події оновлена!'
             inline_kb = types.InlineKeyboardMarkup()
-
-            inline_kb.row(types.InlineKeyboardButton(text='До меню редагування події', callback_data='confirm_event_requests'))
+            if model.is_event_processed(id):
+                inline_kb.row(types.InlineKeyboardButton(text='До меню редагування події', callback_data='confirm_event_requests'))
+            else:
+                inline_kb.row(types.InlineKeyboardButton(text='До меню редагування події', callback_data='edit_event_details'))
 
             bot.send_message(chat_id=message.chat.id,
                                   text=msg,
