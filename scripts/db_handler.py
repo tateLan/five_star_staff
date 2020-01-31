@@ -713,3 +713,21 @@ class DbHandler:
 
         return self.curs.fetchall()
 
+    @check_session_time_alive
+    def get_event_request_by_id(self, *args):
+        event_req = args[0][0]
+
+        q = f'select * from event_request where id={event_req};'
+
+        self.curs.execute(q)
+
+        return self.curs.fetchone()
+
+    @check_session_time_alive
+    def delete_event_by_id(self, *args):
+        event_id = args[0][0]
+
+        q = f'delete from events where id={event_id};'
+
+        self.curs.execute(q)
+        self.connect.commit()

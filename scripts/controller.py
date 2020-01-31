@@ -719,10 +719,36 @@ def confirm_event_requests_handler(call):
         if (title is not None and title != '') and (location is not None and location != '') and (type_of_event_id is not None and type_of_event_id != '') and (class_of_event_id is not None and class_of_event_id != ''):
             inline_kb.row(types.InlineKeyboardButton(text=f'{emojize(" :moneybag:", use_aliases=True)}Розрахувати ціну', callback_data='calculate_event_price'))
 
+        decline_event_request = types.InlineKeyboardButton(text=f'{emojize(" :x:", use_aliases=True)}Відхилити заявку', callback_data=f'decline_event_request_id:{event_id}')
 
         back_to_main = types.InlineKeyboardButton(text=f'{emojize(" :back:", use_aliases=True)}Повернутись до меню',
-                                                  callback_data='main_menu')
+                                                callback_data='main_menu')
+
+        inline_kb.row(decline_event_request)
         inline_kb.row(back_to_main)
+
+        bot.edit_message_text(chat_id=call.message.chat.id,
+                              message_id=call.message.message_id,
+                              text=msg,
+                              reply_markup=inline_kb)
+
+    except Exception as err:
+        method_name = sys._getframe( ).f_code.co_name
+
+        logger.write_to_log('exception', 'controller')
+        logger.write_to_err_log(f'exception in method {method_name} - {err}', 'controller')
+
+
+@bot.callback_query_handler(func=lambda call: call.data.split('decline_event_request_id:').__len__() > 1)
+def decline_event_request_id_handler(call):
+    try:
+        event_id = call.data.split('decline_event_request_id:')[1]
+        model.decline_event_request(event_id, call.message.chat.id)
+
+        msg = f'Заявку було відхилено!'
+        inline_kb = types.InlineKeyboardMarkup()
+        inline_kb.add(types.InlineKeyboardButton(text=f'{emojize(" :back:", use_aliases=True)}Повернутись до меню',
+                                                callback_data='main_menu'))
 
         bot.edit_message_text(chat_id=call.message.chat.id,
                               message_id=call.message.message_id,
@@ -899,6 +925,78 @@ def approve_event_price_handler(call):
 
         inline_kb.add(types.InlineKeyboardButton(text=f'{emojize(" :back:", use_aliases=True)}Повернутись до меню',
                                                   callback_data='main_menu'))
+
+        bot.edit_message_text(chat_id=call.message.chat.id,
+                              message_id=call.message.message_id,
+                              text=msg,
+                              reply_markup=inline_kb)
+
+    except Exception as err:
+        method_name = sys._getframe( ).f_code.co_name
+
+        logger.write_to_log('exception', 'controller')
+        logger.write_to_err_log(f'exception in method {method_name} - {err}', 'controller')
+
+
+@bot.callback_query_handler(func=lambda call: call.data == 'edit_event_details')
+def edit_event_details_handler(call):
+    """
+    Creates menu which displays all upcoming events, which can be edited
+    :param call: callback instance
+    :return: None
+    """
+    try:
+        events = model.get_upcoming_events()
+
+        msg = 'Виберіть подію, яку необхідно редагувати:'
+        inline_kb = types.InlineKeyboardMarkup()
+
+        for event_id, req_id, title, _, date_starts, _, _, _, _, _, _, _, _ in events:
+            _, _, fn, ln, _, _, _ = model.get_client_by_event_request_id(req_id)
+            inline_kb.add(types.InlineKeyboardButton(text=f'{title} {fn} {ln} {date_starts.date()}', callback_data=f'modify_event_id:{event_id}'))
+
+        back_to_main = types.InlineKeyboardButton(text=f'{emojize(" :back:", use_aliases=True)}Повернутись до меню',
+                                                  callback_data='main_menu')
+        inline_kb.add(back_to_main)
+
+        bot.edit_message_text(chat_id=call.message.chat.id,
+                              message_id=call.message.message_id,
+                              text=msg,
+                              reply_markup=inline_kb)
+
+    except Exception as err:
+        method_name = sys._getframe( ).f_code.co_name
+
+        logger.write_to_log('exception', 'controller')
+        logger.write_to_err_log(f'exception in method {method_name} - {err}', 'controller')
+
+
+@bot.callback_query_handler(func=lambda call: call.data.split('modify_event_id:').__len__() > 1)
+def modify_event_id_handler(call):
+    try:
+        event_id = call.data.split('modify_event_id:')[1]
+
+        request_id, event_id, client_id, title, location, date_starts, date_ends, guests, type_of_event_id, class_of_event_id, _ = model.get_event_request_extended_info_by_id(event_id)
+        _, client_username, f_name, l_name, company, phone, email = model.get_client_by_id(client_id)
+
+        class_of_event = None
+        type_of_event = None
+
+        if type_of_event_id is not None:
+            _, type_of_event = model.get_type_of_event_by_id(type_of_event_id)
+        if class_of_event_id is not None:
+            _, class_of_event, _ = model.get_class_of_event_by_id(class_of_event_id)
+
+        msg = get_extended_event_info_message((request_id, event_id, client_id, title, location, date_starts, date_ends,
+                                               guests, type_of_event_id, class_of_event_id, type_of_event,
+                                               class_of_event, client_username, f_name, l_name, company, phone, email),
+                                              type_of_action='Зміна пареметрів події')
+
+        inline_kb = types.InlineKeyboardMarkup()
+
+        back_to_main = types.InlineKeyboardButton(text=f'{emojize(" :back:", use_aliases=True)}Повернутись до меню',
+                                                  callback_data='main_menu')
+        inline_kb.row(back_to_main)
 
         bot.edit_message_text(chat_id=call.message.chat.id,
                               message_id=call.message.message_id,
