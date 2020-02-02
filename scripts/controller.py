@@ -773,7 +773,7 @@ def get_event_type(call):
         msg = f'{emojize(" :tada:", use_aliases=True)} Тип події оновлено!'
         inline_kb = types.InlineKeyboardMarkup()
 
-        if model.is_event_processed(id):
+        if not model.is_event_processed(id):
             inline_kb.row(
                 types.InlineKeyboardButton(text='До меню редагування події', callback_data='confirm_event_requests'))
         else:
@@ -803,7 +803,7 @@ def get_event_type(call):
         msg = f'{emojize(" :tada:", use_aliases=True)} Клас події оновлено!'
         inline_kb = types.InlineKeyboardMarkup()
 
-        if model.is_event_processed(id):
+        if not model.is_event_processed(id):
             inline_kb.row(
                 types.InlineKeyboardButton(text='До меню редагування події', callback_data='confirm_event_requests'))
         else:
@@ -905,7 +905,7 @@ def calculate_event_price_handler(call):
         back_to_main = types.InlineKeyboardButton(text=f'{emojize(" :back:", use_aliases=True)}Повернутись до меню',
                                                   callback_data='main_menu')
         inline_kb.row(approve_price)
-        inline_kb.row(back_to_main)
+        # inline_kb.row(back_to_main)
 
         bot.edit_message_text(chat_id=call.message.chat.id,
                               message_id=call.message.message_id,
@@ -981,6 +981,11 @@ def edit_event_details_handler(call):
 
 @bot.callback_query_handler(func=lambda call: call.data.split('modify_event_id:').__len__() > 1)
 def modify_event_id_handler(call):
+    """
+    Modifies event data and recalculating its price
+    :param call:
+    :return:
+    """
     try:
         event_id = call.data.split('modify_event_id:')[1]
 
@@ -1021,6 +1026,57 @@ def modify_event_id_handler(call):
         logger.write_to_err_log(f'exception in method {method_name} - {err}', 'controller')
 
 
+@bot.callback_query_handler(func=lambda call: call.data == 'set_main_on_shift')
+def set_main_on_shift_handler(call):
+    """
+    Checks if there's shifts without supervisor and shows list of em
+    :param call:
+    :return:
+    """
+    try:
+        shifts = model.get_upcoming_shifts()
+        shifts_without_supervisor = []
+
+        for shift in shifts:
+            if shift[5] is None or shift[5] == '':
+                shifts_without_supervisor.append(shift)
+
+        msg = 'Виберіть зміну для призначення головного:'
+        inline_kb = types.InlineKeyboardMarkup()
+
+        for shift in shifts_without_supervisor:
+            _, _, _, title, _, date_starts, _, guests, _, _, staff = model.get_event_request_extended_info_by_id(shift[1])
+            inline_kb.add(types.InlineKeyboardButton(text=f'{title} {date_starts} {staff}', callback_data=f'set_supervisor_to_shift_id:{shift[0]}'))
+
+        back_to_main = types.InlineKeyboardButton(text=f'{emojize(" :back:", use_aliases=True)}Повернутись до меню',
+                                                  callback_data='main_menu')
+
+        inline_kb.add(back_to_main)
+
+        bot.edit_message_text(chat_id=call.message.chat.id,
+                              message_id=call.message.message_id,
+                              text=msg,
+                              reply_markup=inline_kb)
+
+    except Exception as err:
+        method_name = sys._getframe( ).f_code.co_name
+
+        logger.write_to_log('exception', 'controller')
+        logger.write_to_err_log(f'exception in method {method_name} - {err}', 'controller')
+
+
+@bot.callback_query_handler(func= lambda call: call.data.split('set_supervisor_to_shift_id:').__len__() > 1)
+def set_supervisor_to_shift_id_handler(call):
+    try:
+        shift_id = call.data.split('set_supervisor_to_shift_id:')[1]
+        pass
+    except Exception as err:
+        method_name = sys._getframe( ).f_code.co_name
+
+        logger.write_to_log('exception', 'controller')
+        logger.write_to_err_log(f'exception in method {method_name} - {err}', 'controller')
+
+
 def check_shifts_with_supervisor(shifts):
     """
     Counts number of shifts with supervisors and without em
@@ -1054,7 +1110,7 @@ def get_event_title(message):
             msg = f'{emojize(" :tada:", use_aliases=True)} Назва події оновлена!'
             inline_kb = types.InlineKeyboardMarkup()
 
-            if model.is_event_processed(id):
+            if not model.is_event_processed(event_id):
                 inline_kb.row(
                     types.InlineKeyboardButton(text='До меню редагування події', callback_data='confirm_event_requests'))
             else:
@@ -1089,7 +1145,7 @@ def get_event_location(message):
 
             msg = f'{emojize(" :tada:", use_aliases=True)} Локація події оновлена!'
             inline_kb = types.InlineKeyboardMarkup()
-            if model.is_event_processed(id):
+            if not model.is_event_processed(event_id):
                 inline_kb.row(types.InlineKeyboardButton(text='До меню редагування події', callback_data='confirm_event_requests'))
             else:
                 inline_kb.row(types.InlineKeyboardButton(text='До меню редагування події', callback_data='edit_event_details'))

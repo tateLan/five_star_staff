@@ -751,5 +751,27 @@ class DbHandler:
         self.curs.execute(q)
         self.connect.commit()
 
+    @check_session_time_alive
+    def is_event_processed(self, *args):
+        event_id = args[0][0]
+
+        q = f'select processed from event_request er left join events e on er.id = e.event_request_id where e.id = {event_id}'
+
+        self.curs.execute(q)
+
+        return self.curs.fetchone()
+
+    @check_session_time_alive
+    def get_shift_extended_info_by_id(self, *args):
+        shift_id = args[0][0]
+
+        q = f'select sh.id, e.id, profesionals_number, middles_number, beginers_number, supervisor,' \
+            f'title, location, date_starts, date_ends, guests, type_of_event, event_class, staff_needed, price, curency' \
+            f' from shift sh left join events e on sh.event_id = e.id ' \
+            f'where sh.id={shift_id};'
+
+        self.curs.execute(q)
+
+        return self.curs.fetchall()
 
 
