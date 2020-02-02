@@ -772,6 +772,35 @@ class DbHandler:
 
         self.curs.execute(q)
 
+        return self.curs.fetchone()
+
+    @check_session_time_alive
+    def get_registered_to_shift(self, *args):
+        shift_id = args[0][0]
+
+        q = f'select * from shift_registration where shift_id={shift_id} and registered=1;'
+
+        self.curs.execute(q)
+
         return self.curs.fetchall()
+
+    @check_session_time_alive
+    def get_staff_by_id(self, *args):
+        staff_id = args[0][0]
+
+        q = f'select * from staff where id={staff_id};'
+
+        self.curs.execute(q)
+
+        return self.curs.fetchone()
+
+    @check_session_time_alive
+    def update_shift_supervisor(self, *args):
+        shift_id, staff_id = args[0]
+
+        q = f'update shift set supervisor={staff_id} where id={shift_id};'
+
+        self.curs.execute(q)
+        self.connect.commit()
 
 

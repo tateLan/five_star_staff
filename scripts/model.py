@@ -869,6 +869,9 @@ class Model:
     def is_event_processed(self, event_id):
         try:
             res = self.db_handler.is_event_processed(event_id)
+
+            self.logger.write_to_log('event status got', 'model')
+
             return bool(res)
         except Exception as err:
             method_name = sys._getframe().f_code.co_name
@@ -878,7 +881,44 @@ class Model:
 
     def get_shift_extended_info_by_id(self, shift_id):
         try:
+            self.logger.write_to_log('shift extended information requested', 'model')
             shift_info = self.db_handler.get_shift_extended_info_by_id(shift_id)
+            return shift_info
+        except Exception as err:
+            method_name = sys._getframe().f_code.co_name
+
+            self.logger.write_to_log('exception', 'model')
+            self.logger.write_to_err_log(f'exception in method {method_name} - {err}', 'model')
+
+    def get_registered_to_shift_staff(self, shift_id):
+        try:
+            registered_to_shift = self.db_handler.get_registered_to_shift(shift_id)
+            self.logger.write_to_log('list of registered to shift got', 'model')
+
+            return registered_to_shift
+        except Exception as err:
+            method_name = sys._getframe().f_code.co_name
+
+            self.logger.write_to_log('exception', 'model')
+            self.logger.write_to_err_log(f'exception in method {method_name} - {err}', 'model')
+
+    def get_staff_by_id(self, staff_id):
+        try:
+            staff = self.db_handler.get_staff_by_id(staff_id)
+
+            self.logger.write_to_log(f'staff by id {staff_id} got', 'model')
+
+            return staff
+        except Exception as err:
+            method_name = sys._getframe().f_code.co_name
+
+            self.logger.write_to_log('exception', 'model')
+            self.logger.write_to_err_log(f'exception in method {method_name} - {err}', 'model')
+
+    def update_shift_supervisor(self, shift_id, staff_id):
+        try:
+            self.db_handler.update_shift_supervisor(shift_id, staff_id)
+            self.logger.write_to_log(f'shift {shift_id} supervisor updated', 'model')
         except Exception as err:
             method_name = sys._getframe().f_code.co_name
 

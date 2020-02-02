@@ -1069,7 +1069,57 @@ def set_main_on_shift_handler(call):
 def set_supervisor_to_shift_id_handler(call):
     try:
         shift_id = call.data.split('set_supervisor_to_shift_id:')[1]
-        pass
+
+        _, event_id, pro, mid, beg, supervisor_id, title, location, date_starts, date_ends, guests, type_id, class_id, staff, price, currency_id = model.get_shift_extended_info_by_id(shift_id)
+        registered_to_shift = model.get_registered_to_shift_staff(shift_id)
+
+        msg = ''
+        inline_kb = types.InlineKeyboardMarkup()
+
+        if len(registered_to_shift) == 0:
+            msg = 'На дану зміну ще не зареєстровано жодного працівника. Повторіть спробу пізніше'
+        else:
+            msg = f'{emojize(" :white_check_mark:", use_aliases=True) if len(registered_to_shift) == staff else emojize(" :negative_squared_cross_mark:", use_aliases=True)}Зареєстровано {len(registered_to_shift)}/{staff}\n' \
+                  f'Виберіть працівника з списку зареєстрованих на зміну:\n' \
+                  f'{"-" * 20}\n' \
+                  f'Прізвище, ім\'я, кваліфікація, рейтинг, відпрацьовано подій'
+            for registration in registered_to_shift:
+                staff_id, fn, _, ln, _, qualification_id, cur_rat, _, _, events_done, _ = model.get_staff_by_id(registration[2])
+                _, qualification_name = model.get_qualification_by_id(qualification_id)
+                inline_kb.row(types.InlineKeyboardButton(text=f'{ln} {fn} {qualification_name} {cur_rat} {events_done}', callback_data=f'set_supervisor_staff:{staff_id}_shift:{shift_id}'))
+
+        back_to_main = types.InlineKeyboardButton(text=f'{emojize(" :back:", use_aliases=True)}Повернутись до меню',
+                                                  callback_data='main_menu')
+        inline_kb.row(back_to_main)
+        bot.edit_message_text(chat_id=call.message.chat.id,
+                              message_id=call.message.message_id,
+                              text=msg,
+                              reply_markup=inline_kb)
+    except Exception as err:
+        method_name = sys._getframe( ).f_code.co_name
+
+        logger.write_to_log('exception', 'controller')
+        logger.write_to_err_log(f'exception in method {method_name} - {err}', 'controller')
+
+
+@bot.callback_query_handler(func=lambda call: call.data.split('set_supervisor_staff:').__len__() > 1)
+def set_supervisor_staff_handler(call):
+    try:
+        staff_id = call.data.split('staff:')[1].split('_')[0]
+        shift_id = call.data.split('shift:')[1]
+
+        model.update_shift_supervisor(shift_id, staff_id)
+
+        msg = f'{emojize(":tada:", use_aliases=True)}Головного на зміні успішно призначено!'
+        inline_kb = types.InlineKeyboardMarkup()
+
+        inline_kb.add(types.InlineKeyboardButton(text=f'{emojize(" :back:", use_aliases=True)}Повернутись до меню',
+                                                  callback_data='main_menu'))
+
+        bot.edit_message_text(chat_id=call.message.chat.id,
+                              message_id=call.message.message_id,
+                              text=msg,
+                              reply_markup=inline_kb)
     except Exception as err:
         method_name = sys._getframe( ).f_code.co_name
 
