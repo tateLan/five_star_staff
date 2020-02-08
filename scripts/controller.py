@@ -1057,7 +1057,6 @@ def set_main_on_shift_handler(call):
                               message_id=call.message.message_id,
                               text=msg,
                               reply_markup=inline_kb)
-
     except Exception as err:
         method_name = sys._getframe( ).f_code.co_name
 
@@ -1120,6 +1119,93 @@ def set_supervisor_staff_handler(call):
                               message_id=call.message.message_id,
                               text=msg,
                               reply_markup=inline_kb)
+    except Exception as err:
+        method_name = sys._getframe( ).f_code.co_name
+
+        logger.write_to_log('exception', 'controller')
+        logger.write_to_err_log(f'exception in method {method_name} - {err}', 'controller')
+
+
+@bot.callback_query_handler(func=lambda call: call.data == 'change_main_on_shift')
+def change_main_on_shift_handler(call):
+    """
+    Handles 'change supervisor' button click
+    :param call: callback instance
+    :return: None
+    """
+    try:
+        shifts = model.get_upcoming_shifts()
+        shifts_with_supervisor = []
+
+        for shift in shifts:
+            if shift[5] is not None:
+                shifts_with_supervisor.append(shift)
+
+        msg = 'Виберіть зміну для зміни головного:'
+        inline_kb = types.InlineKeyboardMarkup()
+
+        for shift in shifts_with_supervisor:
+            _, _, _, title, _, date_starts, _, guests, _, _, staff = model.get_event_request_extended_info_by_id(shift[1])
+            inline_kb.add(types.InlineKeyboardButton(text=f'{title} {date_starts} {staff}', callback_data=f'change_supervisor_at_shift_id:{shift[0]}'))
+
+        back_to_main = types.InlineKeyboardButton(text=f'{emojize(" :back:", use_aliases=True)}Повернутись до меню',
+                                                  callback_data='main_menu')
+
+        inline_kb.add(back_to_main)
+
+        bot.edit_message_text(chat_id=call.message.chat.id,
+                              message_id=call.message.message_id,
+                              text=msg,
+                              reply_markup=inline_kb)
+    except Exception as err:
+        method_name = sys._getframe( ).f_code.co_name
+
+        logger.write_to_log('exception', 'controller')
+        logger.write_to_err_log(f'exception in method {method_name} - {err}', 'controller')
+
+
+@bot.callback_query_handler(func=lambda call: call.data.split('change_supervisor_at_shift_id:').__len__() > 1)
+def change_supervisor_at_shift_id_handler(call):
+    """
+    Displays all registered for shift staff
+    :param call: callback instance
+    :return: None
+    """
+    try:
+        shift_id = call.data.split('change_supervisor_at_shift_id:')[1]
+
+        _, event_id, pro, mid, beg, supervisor_id, title, location, date_starts, date_ends, guests, type_id, class_id, staff, price, currency_id = model.get_shift_extended_info_by_id(
+            shift_id)
+        registered_to_shift = model.get_registered_to_shift_staff(shift_id)
+
+        msg = ''
+        inline_kb = types.InlineKeyboardMarkup()
+
+        msg = f'{emojize(" :white_check_mark:", use_aliases=True) if len(registered_to_shift) == staff else emojize(" :negative_squared_cross_mark:", use_aliases=True)}Зареєстровано {len(registered_to_shift)}/{staff}\n' \
+              f'Виберіть працівника з списку зареєстрованих на зміну:\n' \
+              f'{"-" * 20}\n' \
+              f'Прізвище, ім\'я, кваліфікація, рейтинг, відпрацьовано подій'
+
+        for registration in registered_to_shift:
+            staff_id, fn, _, ln, _, qualification_id, cur_rat, _, _, events_done, _ = model.get_staff_by_id(
+                registration[2])
+            _, qualification_name = model.get_qualification_by_id(qualification_id)
+            if staff_id == supervisor_id:
+                inline_kb.row(types.InlineKeyboardButton(text=f'{emojize(" :cop:", use_aliases=True)}{ln} {fn} {qualification_name} {cur_rat} {events_done}',
+                                                     callback_data=f'set_supervisor_staff:{staff_id}_shift:{shift_id}'))
+            else:
+                inline_kb.row(types.InlineKeyboardButton(
+                    text=f'{ln} {fn} {qualification_name} {cur_rat} {events_done}',
+                    callback_data=f'set_supervisor_staff:{staff_id}_shift:{shift_id}'))
+
+        back_to_main = types.InlineKeyboardButton(text=f'{emojize(" :back:", use_aliases=True)}Повернутись до меню',
+                                                      callback_data='main_menu')
+        inline_kb.row(back_to_main)
+        bot.edit_message_text(chat_id=call.message.chat.id,
+                                  message_id=call.message.message_id,
+                                  text=msg,
+                                  reply_markup=inline_kb)
+
     except Exception as err:
         method_name = sys._getframe( ).f_code.co_name
 
@@ -1328,7 +1414,6 @@ def show_main_menu(message, user_role, edit=False):
                   f'{staff_requests_str}\n' \
                   f'{event_requests_str}\n' \
                   f'{upcoming_shifts_str}\n'
-
 
             inline_kb = types.InlineKeyboardMarkup(row_width=1)
 
