@@ -1,4 +1,5 @@
 import config
+from datetime import datetime
 import model as md
 import telebot
 from telebot import types
@@ -1441,6 +1442,7 @@ def show_main_menu(message, user_role, edit=False):
             get_manager_stat = types.InlineKeyboardButton(
                 text=f'{emojize(" :bar_chart:", use_aliases=True)}Отримати статистику',
                 callback_data='get_manager_statistics')
+            # TODO: add manager statistics
 
             update = types.InlineKeyboardButton(text=f'{emojize(" :repeat:", use_aliases=True)}Оновити статус',
                                                 callback_data='main_menu')
@@ -1465,12 +1467,42 @@ def show_main_menu(message, user_role, edit=False):
             inline_kb.row(get_manager_stat)
             inline_kb.row(update)
 
-            # TODO: update manager menu
-
             logger.write_to_log('displayed manager menu', message.chat.id)
         elif user_role == 'офіціант':
             logger.write_to_log('requested waiter menu', message.chat.id)
-            # TODO: waiter menu
+
+            staff_id, fn, mn, ln, role_id, qualification_id, curr_rat, gen_rat, reg_date, events_done, rate = model.get_staff_by_id(message.chat.id)
+            shifts_ext = model.get_staff_shifts(message.chat.id)
+            upcoming_shifts = 0
+
+            for sh in shifts_ext:
+                if (sh[8]-datetime.now()).seconds > 0:
+                    upcoming_shifts += 1
+
+            msg = f'Меню офіціанта\n' \
+                  f'{"-" * 20}\n' \
+                  f'{emojize(" :white_check_mark:", use_aliases=True)}Відпрацьованих подій:{events_done}\n' \
+                  f'{emojize(" :chart_with_upwards_trend:", use_aliases=True)}Поточний рейтинг:{curr_rat}\n' \
+                  f'{emojize(" :soon:", use_aliases=True)}Майбутніх змін:{upcoming_shifts}'
+
+            inline_kb = types.InlineKeyboardMarkup(row_width=1)
+
+            # TODO: make shift starts and ends for an hour more than event
+
+            check_available_shifts = types.InlineKeyboardButton(text=f'{emojize(" :boom:", use_aliases=True)}Переглянти доступні зміни', callback_data='get_available_shifts')
+            check_registered_shifts = types.InlineKeyboardButton(text=f'{emojize(" :date:", use_aliases=True)}Переглянти зареєстровані зміни', callback_data='get_available_shifts')
+            check_in = types.InlineKeyboardButton(text=f'{emojize(":radio_button:", use_aliases=True)}Підтвердити явку', callback_data=f'check_in')
+            check_out = types.InlineKeyboardButton(text=f'{emojize(":ballot_box_with_check:", use_aliases=True)}Закінчити зміну', callback_data=f'check_out')
+            update = types.InlineKeyboardButton(text=f'{emojize(" :repeat:", use_aliases=True)}Оновити статус', callback_data='main_menu')
+            stat = types.InlineKeyboardButton(text=f'{emojize(":bar_chart:", use_aliases=True)}Статистика', callback_data=f'waiter_statistics')
+
+            inline_kb.row(check_available_shifts)
+            inline_kb.row(check_registered_shifts)
+            inline_kb.row(check_in)
+            inline_kb.row(check_out)
+            inline_kb.row(stat)
+            inline_kb.row(update)
+
             logger.write_to_log('displayed waiter menu', message.chat.id)
 
         if edit:

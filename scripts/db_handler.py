@@ -803,4 +803,13 @@ class DbHandler:
         self.curs.execute(q)
         self.connect.commit()
 
+    @check_session_time_alive
+    def get_staff_shift_registrations(self, *args):
+        staff_id = args[0][0]
+
+        q = f'select * from shift_registration where staff_id={staff_id};'
+
+        self.curs.execute(q)
+        return self.curs.fetchall()
+
 

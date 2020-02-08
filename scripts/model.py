@@ -924,3 +924,34 @@ class Model:
 
             self.logger.write_to_log('exception', 'model')
             self.logger.write_to_err_log(f'exception in method {method_name} - {err}', 'model')
+
+    def get_staff_shifts(self, staff_id, worked=True):
+        """
+        Returns extended information about shifts staff worked
+        :param staff_id: telegram id of staff
+        :param worked: boolean value, marks which types of shift requests needed (worked of canceled). True by default
+        :return: list of extended information about shifts
+        """
+        try:
+            self.logger.write_to_log('requested staff shifts', 'model')
+
+            shifts = []
+
+            shift_registrations = self.db_handler.get_staff_shift_registrations(staff_id)
+            if worked:
+                for reg_id, shift_id, staff_id, date_registered, registered, check_in, check_out, rating, payment in shift_registrations:
+                    if registered == 1:
+                        shifts.append(self.db_handler.get_shift_extended_info_by_id(shift_id))
+            else:
+                for reg_id, shift_id, staff_id, date_registered, registered, check_in, check_out, rating, payment in shift_registrations:
+                    if registered == 0:
+                        shifts.append(self.db_handler.get_shift_extended_info_by_id(shift_id))
+
+            self.logger.write_to_log('got staff shifts', 'model')
+
+            return shifts
+        except Exception as err:
+            method_name = sys._getframe().f_code.co_name
+
+            self.logger.write_to_log('exception', 'model')
+            self.logger.write_to_err_log(f'exception in method {method_name} - {err}', 'model')
