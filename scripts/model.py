@@ -955,3 +955,64 @@ class Model:
 
             self.logger.write_to_log('exception', 'model')
             self.logger.write_to_err_log(f'exception in method {method_name} - {err}', 'model')
+
+    def get_available_shift_for_staff(self, staff_id, staff_qualification_id):
+        """
+        Checks if there's shifts available for staff
+        :param staff_id: telegram id of staff
+        :param staff_qualification_id: id of qualification of staff
+        :return: list of available shifts
+        """
+        try:
+            self.logger.write_to_log(f'requested available shifts for {staff_id}', 'model')
+
+            staff = self.db_handler.get_staff_by_id(staff_id)
+            shifts = self.db_handler.get_upcoming_shifts()
+            _, quali_name = self.db_handler.get_qualification_by_id(staff_qualification_id)
+
+            available_shifts = []
+
+            for shift in shifts:
+                registered_to_shift = self.db_handler.get_staff_id_registered_to_shift_by_id(shift[0])
+
+                staff_needed = 0
+                staff_current_quali_registered = 0
+
+                if quali_name == 'професіонал':
+                    if shift[2] == 0:
+                        continue
+                    else:
+                        staff_needed = shift[2]
+                elif quali_name == 'середній рівень':
+                    if shift[3] ==0:
+                        continue
+                    else:
+                        staff_needed = shift[3]
+                elif quali_name == 'початківець':
+                    if shift[4] == 0:
+                        continue
+                    else:
+                        staff_needed = shift[4]
+
+                if (staff_id,) in registered_to_shift:
+                    continue
+
+                for reg in registered_to_shift:
+                    if reg[2] != staff_id:
+                        worker = self.db_handler.get_staff_by_id(reg[2])
+                        if worker[5] == staff_qualification_id:
+                            staff_current_quali_registered += 1
+
+                if staff_needed > staff_current_quali_registered:
+                    available_shifts.append(shift)
+
+            # TODO: implement shift time management (shifts cant be at one time or at least less than 5 hrs between)
+
+            self.logger.write_to_log(f'got available shifts for {staff_id}', 'model')
+
+            return available_shifts
+        except Exception as err:
+            method_name = sys._getframe().f_code.co_name
+
+            self.logger.write_to_log('exception', 'model')
+            self.logger.write_to_err_log(f'exception in method {method_name} - {err}', 'model')

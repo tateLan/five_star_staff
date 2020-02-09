@@ -1496,7 +1496,9 @@ def show_main_menu(message, user_role, edit=False):
             update = types.InlineKeyboardButton(text=f'{emojize(" :repeat:", use_aliases=True)}Оновити статус', callback_data='main_menu')
             stat = types.InlineKeyboardButton(text=f'{emojize(":bar_chart:", use_aliases=True)}Статистика', callback_data=f'waiter_statistics')
 
-            inline_kb.row(check_available_shifts)
+            if model.get_available_shift_for_staff(message.chat.id, qualification_id).__len__() > 0:
+                inline_kb.row(check_available_shifts)
+
             inline_kb.row(check_registered_shifts)
             inline_kb.row(check_in)
             inline_kb.row(check_out)

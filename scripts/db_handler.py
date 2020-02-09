@@ -812,4 +812,12 @@ class DbHandler:
         self.curs.execute(q)
         return self.curs.fetchall()
 
+    @check_session_time_alive
+    def get_staff_id_registered_to_shift_by_id(self, *args):
+        shift_id = args[0][0]
+
+        q = f'select staff_id from shift_registration sr left join staff s on sr.staff_id = s.id where shift_id={shift_id};'
+
+        self.curs.execute(q)
+        return self.curs.fetchall()
 
