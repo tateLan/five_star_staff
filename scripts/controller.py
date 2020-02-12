@@ -1214,6 +1214,129 @@ def change_supervisor_at_shift_id_handler(call):
         logger.write_to_err_log(f'exception in method {method_name} - {err}', 'controller')
 
 
+@bot.callback_query_handler(func=lambda call: call.data == 'get_available_shifts')
+def get_available_shifts_handler(call):
+    """
+    Handles button click with available shifts request
+    :param call:callback instance
+    :return: None
+    """
+    try:
+        staff_info = model.get_staff_by_id(call.message.chat.id)
+        shifts = model.get_available_shift_for_staff(call.message.chat.id, staff_info[5])
+
+        msg = ''
+        inline_kb = types.InlineKeyboardMarkup()
+
+        if len(shifts) > 0:
+            msg = f'Виберіть зміну, для перегляду більш деттальної інформації:'
+
+            for shift in shifts:
+                event_data = model.get_event_request_extended_info_by_id(shift[1])
+                _, type_name = model.get_type_of_event_by_id(event_data[9])
+                shift_desc = f'{event_data[3]} {event_data[5]} {type_name}'
+
+                inline_kb.row(types.InlineKeyboardButton(text=shift_desc, callback_data=f'show_shift_info_id:{shift[0]}'))
+
+        else:
+            msg=f'Нажаль, більше немає доступних змін для вас{emojize(" :pensive:", use_aliases=True)}'
+
+        inline_kb.row(types.InlineKeyboardButton(text=f'{emojize(" :back:", use_aliases=True)}Повернутись до меню',
+                                                      callback_data='main_menu'))
+
+        bot.edit_message_text(chat_id=call.message.chat.id,
+                              message_id=call.message.message_id,
+                              text=msg,
+                              reply_markup=inline_kb)
+    except Exception as err:
+        method_name = sys._getframe( ).f_code.co_name
+
+        logger.write_to_log('exception', 'controller')
+        logger.write_to_err_log(f'exception in method {method_name} - {err}', 'controller')
+
+
+@bot.callback_query_handler(func=lambda call: call.data.split('show_shift_info_id:').__len__() > 1)
+def show_shift_info_id_handler(call):
+    """
+    Shows shift information to staff
+    :param call: callback instance
+    :return: None
+    """
+    try:
+        shift_id = call.data.split('show_shift_info_id:')[1]
+        shift_id, event_id, pros, mids, begs, sup_id, title, loc, starts, ends, guests, type_id, class_id, staff, price, currency = model.get_shift_extended_info_by_id(shift_id)
+        _, type_name = [x for x in model.get_event_types_list() if x[0] == type_id][0]
+        _, class_name, _ = [x for x in model.get_event_classes_list() if x[0] == class_id][0]
+
+        staff_info = model.get_staff_by_id(call.message.chat.id)
+        shifts = [x for x in model.get_available_shift_for_staff(call.message.chat.id, staff_info[5]) if x[0] != shift_id]
+
+        msg = f'{emojize(" :dizzy:", use_aliases=True)}Назва події:{title}\n' \
+              f'{"-" * 20}\n' \
+              f'{emojize(" :clock4:", use_aliases=True)}Початок: {starts}\n' \
+              f'{emojize(" :clock430:", use_aliases=True)}Кінець: {ends}\n' \
+              f'{emojize(" :hourglass:", use_aliases=True)}Час на зміні: {ends - starts}\n' \
+              f'{emojize(" :busts_in_silhouette:", use_aliases=True)}Кількість гостей: {guests}\n' \
+              f'{emojize(" :fireworks:", use_aliases=True)}Тип події: {type_name}\n' \
+              f'{emojize(" :star:", use_aliases=True)}Клас події: {class_name}\n'
+        inline_kb = types.InlineKeyboardMarkup()
+
+        inline_kb.row(types.InlineKeyboardButton(text=f'{emojize(" :triangular_flag_on_post:", use_aliases=True)}Переглянути локацію', callback_data=f'check_location_evid:{event_id}_shid:{shift_id}'))
+
+        inline_kb.row(types.InlineKeyboardButton(text=f'{emojize(" :heavy_plus_sign:", use_aliases=True)}Зареєструватись на зміну', callback_data=f'register_to_shift_id:{shift_id}'))
+
+        if shifts.__len__() > 0:
+            inline_kb.row(types.InlineKeyboardButton(text=f'{emojize(" :arrow_forward:", use_aliases=True)}Наступна зміна', callback_data=f'show_shift_info_id:{shifts[0][0]}'))
+
+        inline_kb.row(types.InlineKeyboardButton(text=f'{emojize(" :back:", use_aliases=True)}Повернутись до меню',
+                                                 callback_data='main_menu'))
+
+        bot.edit_message_text(chat_id=call.message.chat.id,
+                              message_id=call.message.message_id,
+                              text=msg,
+                              reply_markup=inline_kb)
+    except Exception as err:
+        method_name = sys._getframe( ).f_code.co_name
+
+        logger.write_to_log('exception', 'controller')
+        logger.write_to_err_log(f'exception in method {method_name} - {err}', 'controller')
+
+
+@bot.callback_query_handler(func=lambda call: call.data.split('check_location_evid:').__len__() > 0)
+def check_location_handler(call):
+    try:
+        event_id = call.data.split('check_location_evid:')[1].split('_')[0]
+        shift_id = call.data.split('shid:')[1]
+
+        location = model.get_event_request_extended_info_by_id(event_id)[4]
+
+        latitude = location.split(':')[1].split(' ')[0]
+        longitude = location.split(':')[2]
+
+        inline_kb = types.InlineKeyboardMarkup()
+
+        inline_kb.row(types.InlineKeyboardButton(text=f'{emojize(" :back:", use_aliases=True)}Повернутись до меню',
+                                                 callback_data='main_menu'))
+
+        bot.edit_message_text(chat_id=call.message.chat.id,
+                             message_id=call.message.message_id,
+                             text='Подія відбуватиметься на наступній локації:',
+                             reply_markup=None)
+
+        bot.send_location(chat_id=call.message.chat.id,
+                          latitude=latitude,
+                          longitude=longitude)
+
+        show_main_menu(call.message, edit=False)
+
+
+    except Exception as err:
+        method_name = sys._getframe( ).f_code.co_name
+
+        logger.write_to_log('exception', 'controller')
+        logger.write_to_err_log(f'exception in method {method_name} - {err}', 'controller')
+
+
 def check_shifts_with_supervisor(shifts):
     """
     Counts number of shifts with supervisors and without em
@@ -1486,8 +1609,6 @@ def show_main_menu(message, user_role, edit=False):
                   f'{emojize(" :soon:", use_aliases=True)}Майбутніх змін:{upcoming_shifts}'
 
             inline_kb = types.InlineKeyboardMarkup(row_width=1)
-
-            # TODO: make shift starts and ends for an hour more than event
 
             check_available_shifts = types.InlineKeyboardButton(text=f'{emojize(" :boom:", use_aliases=True)}Переглянти доступні зміни', callback_data='get_available_shifts')
             check_registered_shifts = types.InlineKeyboardButton(text=f'{emojize(" :date:", use_aliases=True)}Переглянти зареєстровані зміни', callback_data='get_available_shifts')
