@@ -1229,11 +1229,11 @@ def get_available_shifts_handler(call):
         inline_kb = types.InlineKeyboardMarkup()
 
         if len(shifts) > 0:
-            msg = f'Виберіть зміну, для перегляду більш деттальної інформації:'
+            msg = f'Виберіть зміну, для перегляду більш детальної інформації:'
 
             for shift in shifts:
                 event_data = model.get_event_request_extended_info_by_id(shift[1])
-                _, type_name = model.get_type_of_event_by_id(event_data[9])
+                _, type_name = model.get_type_of_event_by_id(event_data[8])
                 shift_desc = f'{event_data[3]} {event_data[5]} {type_name}'
 
                 inline_kb.row(types.InlineKeyboardButton(text=shift_desc, callback_data=f'show_shift_info_id:{shift[0]}'))
