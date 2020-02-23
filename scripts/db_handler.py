@@ -88,7 +88,7 @@ class DbHandler:
         user_id = args[0][0]
         q = f'INSERT INTO five_star_db.staff (id, current_rating, general_rating,' \
             f' events_done, rate) VALUES ({user_id}, 0, 0, 0, ' \
-            f'{config.START_RATE})'
+            f'{config.NEW_RATE})'
 
         self.curs.execute(q)
         self.connect.commit()
@@ -821,3 +821,23 @@ class DbHandler:
         self.curs.execute(q)
         return self.curs.fetchall()
 
+    @check_session_time_alive
+    def register_staff_to_shift(self, *args):
+        shift_id, staff_id, time = args[0]
+
+        q = f"insert into shift_registration (shift_id, staff_id, date_registered ,registered) values ({shift_id}, {staff_id}, '{time}', 1);"
+
+        self.curs.execute(q)
+        self.connect.commit()
+
+    @check_session_time_alive
+    def get_staff_registered_shifts_by_id(self, *args):
+        staff_id = args[0][0]
+
+        q = f'select title, date_starts, date_ends ' \
+            f'from (shift_registration left join shift s on shift_registration.shift_id = s.id) ' \
+            f'left join events e on e.id = s.event_id where staff_id={staff_id} and registered=1;'
+
+        self.curs.execute(q)
+
+        return self.curs.fetchall()

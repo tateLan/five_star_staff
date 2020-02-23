@@ -1,5 +1,6 @@
 import db_handler as db
 from datetime import datetime
+from datetime import timedelta
 import sys
 import config
 import math
@@ -1011,6 +1012,57 @@ class Model:
             self.logger.write_to_log(f'got available shifts for {staff_id}', 'model')
 
             return available_shifts
+        except Exception as err:
+            method_name = sys._getframe().f_code.co_name
+
+            self.logger.write_to_log('exception', 'model')
+            self.logger.write_to_err_log(f'exception in method {method_name} - {err}', 'model')
+
+    def register_for_shift(self, shift_id, staff_id):
+        """
+        Checks if staff can register for shift (due to time limits) and registers (or not) him to shift
+        :param shift_id: shift id
+        :param staff_id: staff telegram id
+        :return: status (1 - registered to shift, 0 - no)
+        """
+        try:
+            result = False
+            conflict = False
+
+            date = datetime.now()
+            mysql_date = f'{date.year}-{date.month}-{date.day} {date.hour}:{date.minute}:00'
+
+            shifts_registered_on = self.db_handler.get_staff_registered_shifts_by_id(staff_id)
+            shift_pretending = self.db_handler.get_shift_extended_info_by_id(shift_id)
+
+            if shifts_registered_on.__len__() > 0:
+                for shift in shifts_registered_on:
+                    diff = shift[1] - shift_pretending[8]
+
+                    if diff > timedelta(minutes=0):    # shift is later
+                        interval = (diff - (shift_pretending[9] - shift_pretending[8])).seconds / 3600
+                        if interval >= config.HOURS_BETWEEN_SHIFTS:
+                            conflict = False
+                        else:
+                            conflict = True
+                            break
+                    else:   # pretending is later
+                        diff = shift_pretending[8] - shift[1]
+                        interval = (diff - (shift[2] - shift[1])).seconds / 3600
+                        if interval >= config.HOURS_BETWEEN_SHIFTS:
+                            conflict = False
+                        else:
+                            conflict = True
+                            break
+
+            if conflict:
+                result = False
+            else:
+                self.db_handler.register_staff_to_shift(shift_id, staff_id, mysql_date)
+                self.logger.write_to_log('staff registered to shift', 'model')
+                result = True
+
+            return result
         except Exception as err:
             method_name = sys._getframe().f_code.co_name
 

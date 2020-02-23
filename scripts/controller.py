@@ -1302,8 +1302,13 @@ def show_shift_info_id_handler(call):
         logger.write_to_err_log(f'exception in method {method_name} - {err}', 'controller')
 
 
-@bot.callback_query_handler(func=lambda call: call.data.split('check_location_evid:').__len__() > 0)
+@bot.callback_query_handler(func=lambda call: call.data.split('check_location_evid:').__len__() > 1)
 def check_location_handler(call):
+    """
+    Sends event location to staff, deletes shift message and sends new main menu message
+    :param call: callback instance
+    :return: None
+    """
     try:
         event_id = call.data.split('check_location_evid:')[1].split('_')[0]
         shift_id = call.data.split('shid:')[1]
@@ -1336,6 +1341,34 @@ def check_location_handler(call):
         logger.write_to_log('exception', 'controller')
         logger.write_to_err_log(f'exception in method {method_name} - {err}', 'controller')
 
+
+@bot.callback_query_handler(func=lambda call: call.data.split('register_to_shift_id').__len__() > 1)
+def register_to_shift_id_handler(call):
+    try:
+        shift_id = call.data.split('register_to_shift_id:')[1]
+
+        msg = f''
+        inline_kb = types.InlineKeyboardMarkup()
+
+        inline_kb.row(types.InlineKeyboardButton(text=f'{emojize(" :back:", use_aliases=True)}Повернутись до меню',
+                                                 callback_data='main_menu'))
+
+        if model.register_for_shift(shift_id, call.message.chat.id):
+            msg = f'{emojize(":tada:", use_aliases=True)}Вас успішно зареєстровано на зміну!'
+        else:
+            msg = f'{emojize(" :disappointed:", use_aliases=True)}Вас не було зареєстровано на зміну, оскільки ви зареєстровані на інші зміни, які конфліктують.' \
+                  f' Інтервал між змінами повинен бути {config.HOURS_BETWEEN_SHIFTS} годин'
+
+        bot.edit_message_text(chat_id=call.message.chat.id,
+                              message_id=call.message.message_id,
+                              text=msg,
+                              reply_markup=inline_kb)
+
+    except Exception as err:
+        method_name = sys._getframe( ).f_code.co_name
+
+        logger.write_to_log('exception', 'controller')
+        logger.write_to_err_log(f'exception in method {method_name} - {err}', 'controller')
 
 def check_shifts_with_supervisor(shifts):
     """
