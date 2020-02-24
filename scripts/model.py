@@ -1068,3 +1068,17 @@ class Model:
 
             self.logger.write_to_log('exception', 'model')
             self.logger.write_to_err_log(f'exception in method {method_name} - {err}', 'model')
+
+    def get_staff_registered_shifts(self, staff_id):
+        try:
+            self.logger.write_to_log('staff registered shifts requested', 'model')
+
+            shifts = self.db_handler.get_staff_registered_shifts_by_id_extended(staff_id)
+
+            self.logger.write_to_log('staff registered shifts got', 'model')
+            return shifts
+        except Exception as err:
+            method_name = sys._getframe().f_code.co_name
+
+            self.logger.write_to_log('exception', 'model')
+            self.logger.write_to_err_log(f'exception in method {method_name} - {err}', 'model')

@@ -841,3 +841,15 @@ class DbHandler:
         self.curs.execute(q)
 
         return self.curs.fetchall()
+
+    @check_session_time_alive
+    def get_staff_registered_shifts_by_id_extended(self, *args):
+        staff_id = args[0][0]
+
+        q = f'select shift_registration.id, title, date_starts, date_ends, check_in, check_out, rating, payment ' \
+            f'from (shift_registration left join shift s on shift_registration.shift_id = s.id) ' \
+            f'left join events e on e.id = s.event_id where staff_id={staff_id} and registered=1;'
+
+        self.curs.execute(q)
+
+        return self.curs.fetchall()

@@ -1363,12 +1363,42 @@ def register_to_shift_id_handler(call):
                               message_id=call.message.message_id,
                               text=msg,
                               reply_markup=inline_kb)
+    except Exception as err:
+        method_name = sys._getframe( ).f_code.co_name
+
+        logger.write_to_log('exception', 'controller')
+        logger.write_to_err_log(f'exception in method {method_name} - {err}', 'controller')
+
+
+@bot.callback_query_handler(func=lambda call: call.data == 'check_staff_registered_shifts')
+def check_staff_registered_shifts_handler(call):
+    try:
+        shifts = model.get_staff_registered_shifts(call.message.chat.id)
+
+        msg = 'Виберіть зміну з списку:'
+        inline_kb = types.InlineKeyboardMarkup()
+
+        if len(shifts) > 0:
+            for shift in shifts:
+                inline_kb.row(types.InlineKeyboardButton(text=f'{shift[1]} {shift[2]}',
+                              callback_data=f'get_info_about_shift_registration:{shift[0]}_staff:{call.message.chat.id}'))
+        else:
+            msg = 'На жаль наразі немає змін, на які ви були зареєстровані :('
+
+        inline_kb.row(types.InlineKeyboardButton(text=f'{emojize(" :back:", use_aliases=True)}Повернутись до меню',
+                                                 callback_data='main_menu'))
+
+        bot.edit_message_text(chat_id=call.message.chat.id,
+                              message_id=call.message.message_id,
+                              text=msg,
+                              reply_markup=inline_kb)
 
     except Exception as err:
         method_name = sys._getframe( ).f_code.co_name
 
         logger.write_to_log('exception', 'controller')
         logger.write_to_err_log(f'exception in method {method_name} - {err}', 'controller')
+
 
 def check_shifts_with_supervisor(shifts):
     """
@@ -1644,7 +1674,7 @@ def show_main_menu(message, user_role, edit=False):
             inline_kb = types.InlineKeyboardMarkup(row_width=1)
 
             check_available_shifts = types.InlineKeyboardButton(text=f'{emojize(" :boom:", use_aliases=True)}Переглянти доступні зміни', callback_data='get_available_shifts')
-            check_registered_shifts = types.InlineKeyboardButton(text=f'{emojize(" :date:", use_aliases=True)}Переглянти зареєстровані зміни', callback_data='get_available_shifts')
+            check_registered_shifts = types.InlineKeyboardButton(text=f'{emojize(" :date:", use_aliases=True)}Переглянти зареєстровані зміни', callback_data='check_staff_registered_shifts')
             check_in = types.InlineKeyboardButton(text=f'{emojize(":radio_button:", use_aliases=True)}Підтвердити явку', callback_data=f'check_in')
             check_out = types.InlineKeyboardButton(text=f'{emojize(":ballot_box_with_check:", use_aliases=True)}Закінчити зміну', callback_data=f'check_out')
             update = types.InlineKeyboardButton(text=f'{emojize(" :repeat:", use_aliases=True)}Оновити статус', callback_data='main_menu')
@@ -1653,7 +1683,9 @@ def show_main_menu(message, user_role, edit=False):
             if model.get_available_shift_for_staff(message.chat.id, qualification_id).__len__() > 0:
                 inline_kb.row(check_available_shifts)
 
-            inline_kb.row(check_registered_shifts)
+            if model.get_staff_registered_shifts(message.chat.id).__len__() > 0:
+                inline_kb.row(check_registered_shifts)
+
             inline_kb.row(check_in)
             inline_kb.row(check_out)
             inline_kb.row(stat)
