@@ -1082,3 +1082,30 @@ class Model:
 
             self.logger.write_to_log('exception', 'model')
             self.logger.write_to_err_log(f'exception in method {method_name} - {err}', 'model')
+
+    def get_staff_registered_shift_details(self, shift_registration_id, staff_id):
+        try:
+            self.logger.write_to_log('registered shift details requested', 'model')
+
+            shift = self.db_handler.get_staff_registered_shifts_by_shift_registration_id_extended(shift_registration_id, staff_id)
+
+            self.logger.write_to_log('registered shift details got', 'model')
+            return shift
+        except Exception as err:
+            method_name = sys._getframe().f_code.co_name
+
+            self.logger.write_to_log('exception', 'model')
+            self.logger.write_to_err_log(f'exception in method {method_name} - {err}', 'model')
+
+    def cancel_shift_registration(self, shift_reg_id, staff_id):
+        try:
+            self.logger.write_to_log(f'requested canceling of shift registration for user {staff_id}', 'model')
+
+            self.db_handler.cancel_shift_registration_for_user(shift_reg_id, staff_id)
+
+            self.logger.write_to_log(f'shift registration for user {staff_id} canceled', 'model')
+        except Exception as err:
+            method_name = sys._getframe().f_code.co_name
+
+            self.logger.write_to_log('exception', 'model')
+            self.logger.write_to_err_log(f'exception in method {method_name} - {err}', 'model')

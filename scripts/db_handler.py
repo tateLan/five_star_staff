@@ -853,3 +853,24 @@ class DbHandler:
         self.curs.execute(q)
 
         return self.curs.fetchall()
+
+    @check_session_time_alive
+    def get_staff_registered_shifts_by_shift_registration_id_extended(self, *args):
+        shift_registration_id, staff_id = args[0]
+
+        q = f'select shift_registration.id, title, date_starts, date_ends, date_registered, check_in, check_out, rating, payment ' \
+            f'from (shift_registration left join shift s on shift_registration.shift_id = s.id) ' \
+            f'left join events e on e.id = s.event_id where shift_registration.id={shift_registration_id} and staff_id={staff_id};'
+
+        self.curs.execute(q)
+
+        return self.curs.fetchone()
+
+    @check_session_time_alive
+    def cancel_shift_registration_for_user(self, *args):
+        shift_reg_id, staff_id = args[0]
+
+        q = f'update shift_registration set registered=0 where id={shift_reg_id} and staff_id={staff_id};'
+
+        self.curs.execute(q)
+        self.connect.commit()

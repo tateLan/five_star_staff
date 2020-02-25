@@ -1372,6 +1372,11 @@ def register_to_shift_id_handler(call):
 
 @bot.callback_query_handler(func=lambda call: call.data == 'check_staff_registered_shifts')
 def check_staff_registered_shifts_handler(call):
+    """
+    Handles 'watch registered shifts' menu item click
+    :param call: callback instance
+    :return: None
+    """
     try:
         shifts = model.get_staff_registered_shifts(call.message.chat.id)
 
@@ -1398,6 +1403,101 @@ def check_staff_registered_shifts_handler(call):
 
         logger.write_to_log('exception', 'controller')
         logger.write_to_err_log(f'exception in method {method_name} - {err}', 'controller')
+
+
+@bot.callback_query_handler(func=lambda call: call.data.split('get_info_about_shift_registration:').__len__() > 1)
+def get_info_about_shift_registration_handler(call):
+    try:
+        shift_registration_id = call.data.split('get_info_about_shift_registration:')[1].split('_')[0]
+        staff_id = call.data.split('_staff:')[1]
+
+        msg = ''
+        inline_kb = types.InlineKeyboardMarkup()
+
+        _, title, date_starts, date_ends, date_registered, check_in, check_out, rating, payment  = model.get_staff_registered_shift_details(shift_registration_id, staff_id)
+
+        msg = f'{title}\n' \
+              f'{"-" * 20}\n' \
+              f'{emojize(" :clock4:", use_aliases=True)}Дата початку: {date_starts}\n' \
+              f'{emojize(" :clock430:", use_aliases=True)}Дата закінчення: {date_ends}\n'\
+              f'{emojize(" :pencil:", use_aliases=True)}Дата реєстрації: {date_registered}\n'\
+              f'{emojize(" :heavy_plus_sign:", use_aliases=True)}check-in: {check_in if check_in is not None and check_in !="" else "Інформація тимчасово відсутня"}\n'\
+              f'{emojize(" :heavy_minus_sign:", use_aliases=True)}check-out: {check_out if check_out is not None and check_out !="" else "Інформація тимчасово відсутня"}\n'\
+              f'{emojize(" :chart_with_upwards_trend:", use_aliases=True)}Рейтинг: {rating if rating is not None and rating !="" else "Інформація тимчасово відсутня"}\n'\
+              f'{emojize(" :moneybag:", use_aliases=True)}Заробітна плата: {payment if payment is not None and payment !="" else "Інформація тимчасово відсутня"}\n'
+
+        inline_kb.row(types.InlineKeyboardButton(text=f'{emojize(" :x:", use_aliases=True)}Скасувати реєстрацію на зміну',
+                                                 callback_data=f'ask_about_cancel_shift_registration:{shift_registration_id}_staff:{staff_id}'))
+        inline_kb.row(types.InlineKeyboardButton(text=f'{emojize(" :back:", use_aliases=True)}Повернутись до меню',
+                                                 callback_data='main_menu'))
+
+        bot.edit_message_text(chat_id=call.message.chat.id,
+                              message_id=call.message.message_id,
+                              text=msg,
+                              reply_markup=inline_kb)
+    except Exception as err:
+        method_name = sys._getframe( ).f_code.co_name
+
+        logger.write_to_log('exception', 'controller')
+        logger.write_to_err_log(f'exception in method {method_name} - {err}', 'controller')
+
+
+@bot.callback_query_handler(func=lambda call: call.data.split('ask_about_cancel_shift_registration:').__len__() > 1)
+def cancel_shift_registration_handler(call):
+    try:
+        shift_registration_id = call.data.split('ask_about_cancel_shift_registration:')[1].split('_')[0]
+        staff_id = call.data.split('_staff:')[1]
+
+        _, title, date_starts, date_ends, date_registered, check_in, check_out, rating, payment = model.get_staff_registered_shift_details(shift_registration_id, staff_id)
+
+        msg = f'{emojize(" :interrobang:", use_aliases=True)}Ви впевнені, що хочете скасувати свою реєстрацію на зміну * {title} {date_starts} *?'
+        inline_kb = types.InlineKeyboardMarkup()
+
+        inline_kb.row(types.InlineKeyboardButton(text=f'Так', callback_data=f'cancel_shift_reg_id:{shift_registration_id}_staff:{staff_id}_yes'),
+                      types.InlineKeyboardButton(text=f'Ні', callback_data=f'cancel_shift_reg_id:{shift_registration_id}_staff:{staff_id}_no'))
+
+        bot.edit_message_text(chat_id=call.message.chat.id,
+                              message_id=call.message.message_id,
+                              text=msg,
+                              parse_mode='Markdown',
+                              reply_markup=inline_kb)
+    except Exception as err:
+        method_name = sys._getframe( ).f_code.co_name
+
+        logger.write_to_log('exception', 'controller')
+        logger.write_to_err_log(f'exception in method {method_name} - {err}', 'controller')
+
+
+@bot.callback_query_handler(func=lambda call: call.data.split('cancel_shift_reg_id:').__len__() > 1)
+def cancel_shift_reg_id_handler(call):
+    try:
+        shift_registration_id = call.data.split('cancel_shift_reg_id:')[1].split('_')[0]
+        staff_id = call.data.split('_staff:')[1].split('_')[0]
+        answer = True if call.data.split('_staff:')[1].split('_')[1] == 'yes' else False
+
+        msg = ''
+        inline_kb = types.InlineKeyboardMarkup()
+
+        if answer:
+            model.cancel_shift_registration(shift_registration_id, staff_id)
+            msg = f'{emojize(":tada:",use_aliases=True)}Вашу реєстрацію на зміну було знято!'
+        else:
+            msg = f'Ви залишились зареєстровані на зміну!'
+
+        inline_kb.row(types.InlineKeyboardButton(text=f'{emojize(" :back:", use_aliases=True)}Повернутись до меню',
+                                                 callback_data='main_menu'))
+
+        bot.edit_message_text(chat_id=call.message.chat.id,
+                              message_id=call.message.message_id,
+                              text=msg,
+                              parse_mode='Markdown',
+                              reply_markup=inline_kb)
+    except Exception as err:
+        method_name = sys._getframe( ).f_code.co_name
+
+        logger.write_to_log('exception', 'controller')
+        logger.write_to_err_log(f'exception in method {method_name} - {err}', 'controller')
+
 
 
 def check_shifts_with_supervisor(shifts):
@@ -1673,12 +1773,14 @@ def show_main_menu(message, user_role, edit=False):
 
             inline_kb = types.InlineKeyboardMarkup(row_width=1)
 
-            check_available_shifts = types.InlineKeyboardButton(text=f'{emojize(" :boom:", use_aliases=True)}Переглянти доступні зміни', callback_data='get_available_shifts')
-            check_registered_shifts = types.InlineKeyboardButton(text=f'{emojize(" :date:", use_aliases=True)}Переглянти зареєстровані зміни', callback_data='check_staff_registered_shifts')
+            check_available_shifts = types.InlineKeyboardButton(text=f'{emojize(" :boom:", use_aliases=True)}Переглянути доступні зміни', callback_data='get_available_shifts')
+            check_registered_shifts = types.InlineKeyboardButton(text=f'{emojize(" :date:", use_aliases=True)}Переглянути зареєстровані зміни', callback_data='check_staff_registered_shifts')
             check_in = types.InlineKeyboardButton(text=f'{emojize(":radio_button:", use_aliases=True)}Підтвердити явку', callback_data=f'check_in')
             check_out = types.InlineKeyboardButton(text=f'{emojize(":ballot_box_with_check:", use_aliases=True)}Закінчити зміну', callback_data=f'check_out')
             update = types.InlineKeyboardButton(text=f'{emojize(" :repeat:", use_aliases=True)}Оновити статус', callback_data='main_menu')
             stat = types.InlineKeyboardButton(text=f'{emojize(":bar_chart:", use_aliases=True)}Статистика', callback_data=f'waiter_statistics')
+
+            # TODO: add shift archive to statistics
 
             if model.get_available_shift_for_staff(message.chat.id, qualification_id).__len__() > 0:
                 inline_kb.row(check_available_shifts)
