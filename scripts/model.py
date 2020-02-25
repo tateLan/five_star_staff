@@ -1056,7 +1056,7 @@ class Model:
             if conflict:
                 result = False
             else:
-                if len(self.db_handler.get_shift_registration_by_staff_id_and_shift_id(staff_id, shift_id)) > 0:
+                if self.db_handler.get_shift_registration_by_staff_id_and_shift_id(staff_id, shift_id) is not None:
                     self.db_handler.reregister_staff_to_shift(shift_id, staff_id, mysql_date)
                 else:
                     self.db_handler.register_staff_to_shift(shift_id, staff_id, mysql_date)

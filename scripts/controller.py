@@ -1426,8 +1426,14 @@ def get_info_about_shift_registration_handler(call):
               f'{emojize(" :chart_with_upwards_trend:", use_aliases=True)}Рейтинг: {rating if rating is not None and rating !="" else "Інформація тимчасово відсутня"}\n'\
               f'{emojize(" :moneybag:", use_aliases=True)}Заробітна плата: {payment if payment is not None and payment !="" else "Інформація тимчасово відсутня"}\n'
 
+        check_in = types.InlineKeyboardButton(text=f'{emojize(":radio_button:", use_aliases=True)}Почати зміну',
+                                              callback_data=f'check_in')
+
         inline_kb.row(types.InlineKeyboardButton(text=f'{emojize(" :x:", use_aliases=True)}Скасувати реєстрацію на зміну',
                                                  callback_data=f'ask_about_cancel_shift_registration:{shift_registration_id}_staff:{staff_id}'))
+
+        inline_kb.row(check_in)
+
         inline_kb.row(types.InlineKeyboardButton(text=f'{emojize(" :back:", use_aliases=True)}Повернутись до меню',
                                                  callback_data='main_menu'))
 
@@ -1762,33 +1768,32 @@ def show_main_menu(message, user_role, edit=False):
             shift_registrations = model.get_staffs_shift_registrations(staff_id)
             upcoming_shifts = 0
             now_on_shift = False
+            current_shift_id = 0
+            on_shift_string = f'{emojize(" :heavy_exclamation_mark:", use_aliases=True)}Ви зараз на зміні{emojize(" :heavy_exclamation_mark:", use_aliases=True)}'
 
             for sh_reg in shift_registrations:
                 if sh_reg[4] == 1:
                     if sh_reg[5] is not None and (sh_reg[6] is None or sh_reg[6] == ''):
                         now_on_shift = True
+                        current_shift_id = sh_reg[1]
                         break
 
             for sh in shifts_ext:
                 if (sh[8]-datetime.now()).seconds > 0:
-                    upcoming_shifts += 1
-
-            if now_on_shift:
-                print('yasssss')
-            else:
-                print('nope')
+                    if sh[0] != current_shift_id:
+                        upcoming_shifts += 1
 
             msg = f'Меню офіціанта\n' \
                   f'{"-" * 20}\n' \
                   f'{emojize(" :white_check_mark:", use_aliases=True)}Відпрацьованих подій:{events_done}\n' \
                   f'{emojize(" :chart_with_upwards_trend:", use_aliases=True)}Поточний рейтинг:{curr_rat}\n' \
-                  f'{emojize(" :soon:", use_aliases=True)}Майбутніх змін:{upcoming_shifts}'
+                  f'{emojize(" :soon:", use_aliases=True)}Майбутніх змін:{upcoming_shifts}\n' \
+                  f'{on_shift_string if now_on_shift else ""}'\
 
             inline_kb = types.InlineKeyboardMarkup(row_width=1)
 
             check_available_shifts = types.InlineKeyboardButton(text=f'{emojize(" :boom:", use_aliases=True)}Переглянути доступні зміни', callback_data='get_available_shifts')
             check_registered_shifts = types.InlineKeyboardButton(text=f'{emojize(" :date:", use_aliases=True)}Переглянути зареєстровані зміни', callback_data='check_staff_registered_shifts')
-            check_in = types.InlineKeyboardButton(text=f'{emojize(":radio_button:", use_aliases=True)}Почати зміну', callback_data=f'check_in')
             check_out = types.InlineKeyboardButton(text=f'{emojize(":ballot_box_with_check:", use_aliases=True)}Закінчити зміну', callback_data=f'check_out')
             update = types.InlineKeyboardButton(text=f'{emojize(" :repeat:", use_aliases=True)}Оновити статус', callback_data='main_menu')
             stat = types.InlineKeyboardButton(text=f'{emojize(":bar_chart:", use_aliases=True)}Статистика', callback_data=f'waiter_statistics')
@@ -1801,8 +1806,8 @@ def show_main_menu(message, user_role, edit=False):
             if model.get_staff_registered_shifts(message.chat.id).__len__() > 0:
                 inline_kb.row(check_registered_shifts)
 
-            inline_kb.row(check_in)
-            inline_kb.row(check_out)
+            if now_on_shift:
+                inline_kb.row(check_out)
             inline_kb.row(stat)
             inline_kb.row(update)
 
