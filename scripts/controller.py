@@ -1759,11 +1759,24 @@ def show_main_menu(message, user_role, edit=False):
 
             staff_id, fn, mn, ln, role_id, qualification_id, curr_rat, gen_rat, reg_date, events_done, rate = model.get_staff_by_id(message.chat.id)
             shifts_ext = model.get_staff_shifts(message.chat.id)
+            shift_registrations = model.get_staffs_shift_registrations(staff_id)
             upcoming_shifts = 0
+            now_on_shift = False
+
+            for sh_reg in shift_registrations:
+                if sh_reg[4] == 1:
+                    if sh_reg[5] is not None and (sh_reg[6] is None or sh_reg[6] == ''):
+                        now_on_shift = True
+                        break
 
             for sh in shifts_ext:
                 if (sh[8]-datetime.now()).seconds > 0:
                     upcoming_shifts += 1
+
+            if now_on_shift:
+                print('yasssss')
+            else:
+                print('nope')
 
             msg = f'Меню офіціанта\n' \
                   f'{"-" * 20}\n' \
@@ -1775,7 +1788,7 @@ def show_main_menu(message, user_role, edit=False):
 
             check_available_shifts = types.InlineKeyboardButton(text=f'{emojize(" :boom:", use_aliases=True)}Переглянути доступні зміни', callback_data='get_available_shifts')
             check_registered_shifts = types.InlineKeyboardButton(text=f'{emojize(" :date:", use_aliases=True)}Переглянути зареєстровані зміни', callback_data='check_staff_registered_shifts')
-            check_in = types.InlineKeyboardButton(text=f'{emojize(":radio_button:", use_aliases=True)}Підтвердити явку', callback_data=f'check_in')
+            check_in = types.InlineKeyboardButton(text=f'{emojize(":radio_button:", use_aliases=True)}Почати зміну', callback_data=f'check_in')
             check_out = types.InlineKeyboardButton(text=f'{emojize(":ballot_box_with_check:", use_aliases=True)}Закінчити зміну', callback_data=f'check_out')
             update = types.InlineKeyboardButton(text=f'{emojize(" :repeat:", use_aliases=True)}Оновити статус', callback_data='main_menu')
             stat = types.InlineKeyboardButton(text=f'{emojize(":bar_chart:", use_aliases=True)}Статистика', callback_data=f'waiter_statistics')

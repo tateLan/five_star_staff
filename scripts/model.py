@@ -1056,7 +1056,10 @@ class Model:
             if conflict:
                 result = False
             else:
-                self.db_handler.register_staff_to_shift(shift_id, staff_id, mysql_date)
+                if len(self.db_handler.get_shift_registration_by_staff_id_and_shift_id(staff_id, shift_id)) > 0:
+                    self.db_handler.reregister_staff_to_shift(shift_id, staff_id, mysql_date)
+                else:
+                    self.db_handler.register_staff_to_shift(shift_id, staff_id, mysql_date)
                 self.logger.write_to_log('staff registered to shift', 'model')
                 result = True
 
@@ -1105,6 +1108,16 @@ class Model:
             self.db_handler.cancel_shift_registration_for_user(shift_reg_id, staff_id, mysql_date)
 
             self.logger.write_to_log(f'shift registration for user {staff_id} canceled', 'model')
+        except Exception as err:
+            method_name = sys._getframe().f_code.co_name
+
+            self.logger.write_to_log('exception', 'model')
+            self.logger.write_to_err_log(f'exception in method {method_name} - {err}', 'model')
+
+    def get_staffs_shift_registrations(self, staff_id):
+        try:
+            self.logger.write_to_log('requested staffs all shift registrations', 'model')
+            return self.db_handler.get_staffs_shift_registrations(staff_id)
         except Exception as err:
             method_name = sys._getframe().f_code.co_name
 

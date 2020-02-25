@@ -831,6 +831,15 @@ class DbHandler:
         self.connect.commit()
 
     @check_session_time_alive
+    def reregister_staff_to_shift(self, *args):
+        shift_id, staff_id, time = args[0]
+
+        q = f"update shift_registration set registered=1, date_registered='{time}' where staff_id={staff_id} and shift_id={shift_id}"
+
+        self.curs.execute(q)
+        self.connect.commit()
+
+    @check_session_time_alive
     def get_staff_registered_shifts_by_id(self, *args):
         staff_id = args[0][0]
 
@@ -838,6 +847,15 @@ class DbHandler:
             f'from (shift_registration left join shift s on shift_registration.shift_id = s.id) ' \
             f'left join events e on e.id = s.event_id where staff_id={staff_id} and registered=1;'
 
+        self.curs.execute(q)
+
+        return self.curs.fetchall()
+
+    @check_session_time_alive
+    def get_staffs_shift_registrations(self, *args):
+        staff_id = args[0][0]
+
+        q = f'select * from shift_registration where staff_id={staff_id}'
         self.curs.execute(q)
 
         return self.curs.fetchall()
@@ -874,3 +892,13 @@ class DbHandler:
 
         self.curs.execute(q)
         self.connect.commit()
+
+    @check_session_time_alive
+    def get_shift_registration_by_staff_id_and_shift_id(self, *args):
+        staff_id, shift_id = args[0]
+
+        q = f'select * from shift_registration where staff_id={staff_id} and shift_id={shift_id};'
+
+        self.curs.execute(q)
+
+        return self.curs.fetchone()
