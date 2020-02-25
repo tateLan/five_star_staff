@@ -1007,8 +1007,6 @@ class Model:
                 if staff_needed > staff_current_quali_registered:
                     available_shifts.append(shift)
 
-            # TODO: implement shift time management (shifts cant be at one time or at least less than 5 hrs between)
-
             self.logger.write_to_log(f'got available shifts for {staff_id}', 'model')
 
             return available_shifts
@@ -1101,7 +1099,10 @@ class Model:
         try:
             self.logger.write_to_log(f'requested canceling of shift registration for user {staff_id}', 'model')
 
-            self.db_handler.cancel_shift_registration_for_user(shift_reg_id, staff_id)
+            date = datetime.now()
+            mysql_date = f'{date.year}-{date.month}-{date.day} {date.hour}:{date.minute}:00'
+
+            self.db_handler.cancel_shift_registration_for_user(shift_reg_id, staff_id, mysql_date)
 
             self.logger.write_to_log(f'shift registration for user {staff_id} canceled', 'model')
         except Exception as err:

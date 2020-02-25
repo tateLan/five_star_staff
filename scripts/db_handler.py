@@ -816,7 +816,7 @@ class DbHandler:
     def get_staff_id_registered_to_shift_by_id(self, *args):
         shift_id = args[0][0]
 
-        q = f'select staff_id from shift_registration sr left join staff s on sr.staff_id = s.id where shift_id={shift_id};'
+        q = f'select staff_id from shift_registration sr left join staff s on sr.staff_id = s.id where shift_id={shift_id} and registered=1;'
 
         self.curs.execute(q)
         return self.curs.fetchall()
@@ -868,9 +868,9 @@ class DbHandler:
 
     @check_session_time_alive
     def cancel_shift_registration_for_user(self, *args):
-        shift_reg_id, staff_id = args[0]
+        shift_reg_id, staff_id, date = args[0]
 
-        q = f'update shift_registration set registered=0 where id={shift_reg_id} and staff_id={staff_id};'
+        q = f"update shift_registration set registered=0, date_registered='{date}' where id={shift_reg_id} and staff_id={staff_id};"
 
         self.curs.execute(q)
         self.connect.commit()
