@@ -1047,7 +1047,7 @@ def set_main_on_shift_handler(call):
 
         for shift in shifts_without_supervisor:
             _, _, _, title, _, date_starts, _, guests, _, _, staff = model.get_event_request_extended_info_by_id(shift[1])
-            inline_kb.add(types.InlineKeyboardButton(text=f'{title} {date_starts} {staff}', callback_data=f'set_supervisor_to_shift_id:{shift[0]}'))
+            inline_kb.add(types.InlineKeyboardButton(text=f'{title} {date_starts} {staff} офіц.', callback_data=f'set_supervisor_to_shift_id:{shift[0]}'))
 
         back_to_main = types.InlineKeyboardButton(text=f'{emojize(" :back:", use_aliases=True)}Повернутись до меню',
                                                   callback_data='main_menu')
@@ -1414,9 +1414,21 @@ def get_info_about_shift_registration_handler(call):
         msg = ''
         inline_kb = types.InlineKeyboardMarkup()
 
+        currently_on_shift = False
+        on_shift_string = f'{emojize(" :heavy_exclamation_mark:", use_aliases=True)}Ви зараз на цій зміні{emojize(" :heavy_exclamation_mark:", use_aliases=True)}\n'
+
         _, title, date_starts, date_ends, date_registered, check_in, check_out, rating, payment  = model.get_staff_registered_shift_details(shift_registration_id, staff_id)
+        shift_registrations = model.get_staffs_shift_registrations(staff_id)
+
+        for shift in shift_registrations:
+            if shift[0] == int(shift_registration_id):
+                if shift[5] is not None and (shift[6] is None or shift[6] == ''):
+                    currently_on_shift = True
+            else:
+                continue
 
         msg = f'{title}\n' \
+              f'{on_shift_string if currently_on_shift else ""}' \
               f'{"-" * 20}\n' \
               f'{emojize(" :clock4:", use_aliases=True)}Дата початку: {date_starts}\n' \
               f'{emojize(" :clock430:", use_aliases=True)}Дата закінчення: {date_ends}\n'\
@@ -1427,12 +1439,42 @@ def get_info_about_shift_registration_handler(call):
               f'{emojize(" :moneybag:", use_aliases=True)}Заробітна плата: {payment if payment is not None and payment !="" else "Інформація тимчасово відсутня"}\n'
 
         check_in = types.InlineKeyboardButton(text=f'{emojize(":radio_button:", use_aliases=True)}Почати зміну',
-                                              callback_data=f'check_in')
+                                              callback_data=f'check_in_to_shift_reg_id:{shift_registration_id}_staff:{staff_id}')
 
-        inline_kb.row(types.InlineKeyboardButton(text=f'{emojize(" :x:", use_aliases=True)}Скасувати реєстрацію на зміну',
-                                                 callback_data=f'ask_about_cancel_shift_registration:{shift_registration_id}_staff:{staff_id}'))
+        if not currently_on_shift:
+            inline_kb.row(types.InlineKeyboardButton(text=f'{emojize(" :x:", use_aliases=True)}Скасувати реєстрацію на зміну',
+                                                     callback_data=f'ask_about_cancel_shift_registration:{shift_registration_id}_staff:{staff_id}'))
+            inline_kb.row(check_in)
 
-        inline_kb.row(check_in)
+        inline_kb.row(types.InlineKeyboardButton(text=f'{emojize(" :back:", use_aliases=True)}Повернутись до меню',
+                                                 callback_data='main_menu'))
+
+        bot.edit_message_text(chat_id=call.message.chat.id,
+                              message_id=call.message.message_id,
+                              text=msg,
+                              reply_markup=inline_kb)
+    except Exception as err:
+        method_name = sys._getframe( ).f_code.co_name
+
+        logger.write_to_log('exception', 'controller')
+        logger.write_to_err_log(f'exception in method {method_name} - {err}', 'controller')
+
+
+@bot.callback_query_handler(func=lambda call: call.data.split('check_in_to_shift_reg_id:').__len__() > 1)
+def check_in_to_shift_reg_id_handler(call):
+    try:
+        shift_registration_id = call.data.split('check_in_to_shift_reg_id:')[1].split('_')[0]
+        staff_id = call.data.split('staff:')[1]
+
+        msg = ''
+        inline_kb = types.InlineKeyboardMarkup()
+
+        res = model.check_in_to_shift(shift_registration_id, staff_id)
+
+        if res == 1:
+            msg = 'Зміну було розпочато!'
+        else:
+            msg = f'Зміну не було розпочато. Встановлений час початку зміни складає {config.CHECK_IN_ALLOWED_BEFORE_SHIFT_MIN}хв. до початку події'
 
         inline_kb.row(types.InlineKeyboardButton(text=f'{emojize(" :back:", use_aliases=True)}Повернутись до меню',
                                                  callback_data='main_menu'))

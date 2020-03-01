@@ -755,7 +755,7 @@ class Model:
                     currency_id = id
                     break
 
-            shift_id = self.db_handler.get_event_id_from_shift(event_id)[0]
+            shift_id = self.db_handler.get_event_id_from_shift(event_id)
 
             self.db_handler.update_event_price_and_staff(event_id, price, currency_id, int(pro)+int(mid)+int(beginers))
             self.logger.write_to_log('event data updated with price, currency and staff number', 'model')
@@ -1118,6 +1118,41 @@ class Model:
         try:
             self.logger.write_to_log('requested staffs all shift registrations', 'model')
             return self.db_handler.get_staffs_shift_registrations(staff_id)
+        except Exception as err:
+            method_name = sys._getframe().f_code.co_name
+
+            self.logger.write_to_log('exception', 'model')
+            self.logger.write_to_err_log(f'exception in method {method_name} - {err}', 'model')
+
+    def check_in_to_shift(self, shift_reg_id, staff_id):
+        """
+        Checks if user can already check in to the shift
+        :param shift_reg_id: shift registration id
+        :param staff_id: staff telegram id
+        :return: 1 if checked in to shift, 0 if not
+        """
+        try:
+            self.logger.write_to_log(f'requested check in to shift {shift_reg_id}', 'model')
+            date = datetime.now()
+            mysql_date = f'{date.year}-{date.month}-{date.day} {date.hour}:{date.minute}:00'
+            dates = self.db_handler.get_event_date_by_shift_registration_id_and_staff_id(shift_reg_id, staff_id)
+            status = 0
+
+            diff = dates[2] - date
+
+            if diff.days == 0:
+                if (diff.seconds / 60) < config.CHECK_IN_ALLOWED_BEFORE_SHIFT_MIN:
+                    self.db_handler.check_in_to_shift(mysql_date, shift_reg_id)
+                    self.logger.write_to_log(f'check in entered for shift {shift_reg_id}', 'model')
+                    status = 1
+                else:
+                    status = 0
+                    self.logger.write_to_log(f'check in is not set to shift {shift_reg_id}', 'model')
+            else:
+                status = 0
+                self.logger.write_to_log(f'check in is not set to shift {shift_reg_id}', 'model')
+
+            return status
         except Exception as err:
             method_name = sys._getframe().f_code.co_name
 

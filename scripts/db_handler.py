@@ -902,3 +902,36 @@ class DbHandler:
         self.curs.execute(q)
 
         return self.curs.fetchone()
+
+    @check_session_time_alive
+    def get_event_date_by_shift_registration_id_and_staff_id(self, *args):
+        """
+        Gets information about event dates by shift registration id and staff id
+        :param args: shift registration id, staff id
+        :return: event id, shift id, date starts, date ends
+        """
+        shift_reg_id, staff = args[0]
+
+        q = f'select s.id, e.id, e.date_starts, e.date_ends from (shift_registration sr left join shift s on sr.shift_id = s.id) ' \
+            f'left join events e on s.event_id = e.id where sr.id = {shift_reg_id} and sr.staff_id={staff};'
+
+        self.curs.execute(q)
+
+        return self.curs.fetchone()
+
+    @check_session_time_alive
+    def check_in_to_shift(self, *args):
+        """
+        Updates information about shift registration with check in
+        :param args: date of check in, shift registration id
+        :return: None
+        """
+        date, shift_reg_id = args[0]
+
+        q = f"update shift_registration set check_in='{date}' where id={shift_reg_id};"
+
+        self.curs.execute(q)
+        self.connect.commit()
+
+
+
