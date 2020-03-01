@@ -1158,3 +1158,28 @@ class Model:
 
             self.logger.write_to_log('exception', 'model')
             self.logger.write_to_err_log(f'exception in method {method_name} - {err}', 'model')
+
+    def is_staff_supervisor_on_shift(self, shift_reg_id, staff_id):
+        """
+        Checks if user is supervisor on shift
+        :param shift_reg_id: shift registration id
+        :param staff_id: staff telegram id
+        :return: true if staff is suprvisor on shift, false if not
+        """
+        try:
+            res = False
+            self.logger.write_to_log(f'requested shift supervisor status', 'model')
+            shift_registration = self.db_handler.get_event_date_by_shift_registration_id_and_staff_id(shift_reg_id, staff_id)
+            event_data = self.db_handler.get_shift_extended_info_by_id(shift_registration[0])
+
+            if str(event_data[5]) == str(staff_id):
+                res = True
+
+            self.logger.write_to_log(f'got shift supervisor status', 'model')
+
+            return res
+        except Exception as err:
+            method_name = sys._getframe().f_code.co_name
+
+            self.logger.write_to_log('exception', 'model')
+            self.logger.write_to_err_log(f'exception in method {method_name} - {err}', 'model')

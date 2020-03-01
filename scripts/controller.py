@@ -1416,9 +1416,14 @@ def get_info_about_shift_registration_handler(call):
 
         currently_on_shift = False
         on_shift_string = f'{emojize(" :heavy_exclamation_mark:", use_aliases=True)}Ви зараз на цій зміні{emojize(" :heavy_exclamation_mark:", use_aliases=True)}\n'
+        supervisor = False
+        supervisor_string = f'{emojize(" :cop:", use_aliases=True)}Ви були призначені головним на цю зміну\n'
 
         _, title, date_starts, date_ends, date_registered, check_in, check_out, rating, payment  = model.get_staff_registered_shift_details(shift_registration_id, staff_id)
         shift_registrations = model.get_staffs_shift_registrations(staff_id)
+
+        if model.is_staff_supervisor_on_shift(shift_registration_id, staff_id):
+            supervisor = True
 
         for shift in shift_registrations:
             if shift[0] == int(shift_registration_id):
@@ -1430,6 +1435,7 @@ def get_info_about_shift_registration_handler(call):
         msg = f'{title}\n' \
               f'{on_shift_string if currently_on_shift else ""}' \
               f'{"-" * 20}\n' \
+              f'{supervisor_string if supervisor else ""}' \
               f'{emojize(" :clock4:", use_aliases=True)}Дата початку: {date_starts}\n' \
               f'{emojize(" :clock430:", use_aliases=True)}Дата закінчення: {date_ends}\n'\
               f'{emojize(" :pencil:", use_aliases=True)}Дата реєстрації: {date_registered}\n'\
@@ -1811,12 +1817,15 @@ def show_main_menu(message, user_role, edit=False):
             upcoming_shifts = 0
             now_on_shift = False
             current_shift_id = 0
+            current_shift_reg_id = 0
+            supervisor = False
             on_shift_string = f'{emojize(" :heavy_exclamation_mark:", use_aliases=True)}Ви зараз на зміні{emojize(" :heavy_exclamation_mark:", use_aliases=True)}'
 
             for sh_reg in shift_registrations:
                 if sh_reg[4] == 1:
                     if sh_reg[5] is not None and (sh_reg[6] is None or sh_reg[6] == ''):
                         now_on_shift = True
+                        current_shift_reg_id = sh_reg[0]
                         current_shift_id = sh_reg[1]
                         break
 
@@ -1824,6 +1833,9 @@ def show_main_menu(message, user_role, edit=False):
                 if (sh[8]-datetime.now()).seconds > 0:
                     if sh[0] != current_shift_id:
                         upcoming_shifts += 1
+
+            if model.is_staff_supervisor_on_shift(current_shift_reg_id, staff_id):
+                supervisor = True
 
             msg = f'Меню офіціанта\n' \
                   f'{"-" * 20}\n' \
@@ -1839,7 +1851,7 @@ def show_main_menu(message, user_role, edit=False):
             check_out = types.InlineKeyboardButton(text=f'{emojize(":ballot_box_with_check:", use_aliases=True)}Закінчити зміну', callback_data=f'check_out')
             update = types.InlineKeyboardButton(text=f'{emojize(" :repeat:", use_aliases=True)}Оновити статус', callback_data='main_menu')
             stat = types.InlineKeyboardButton(text=f'{emojize(":bar_chart:", use_aliases=True)}Статистика', callback_data=f'waiter_statistics')
-
+            shift_management_for_supervisor = types.InlineKeyboardButton(text=f'{emojize(" :wrench:", use_aliases=True)}Управління зміною', callback_data=f'manage_shift_for_supervisor_shift:{current_shift_id}')
             # TODO: add shift archive to statistics
 
             if model.get_available_shift_for_staff(message.chat.id, qualification_id).__len__() > 0:
@@ -1850,6 +1862,10 @@ def show_main_menu(message, user_role, edit=False):
 
             if now_on_shift:
                 inline_kb.row(check_out)
+
+            if supervisor:
+                inline_kb.row(shift_management_for_supervisor)
+
             inline_kb.row(stat)
             inline_kb.row(update)
 
