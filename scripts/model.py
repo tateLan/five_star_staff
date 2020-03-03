@@ -692,7 +692,7 @@ class Model:
             _, req_id, title, client_id, location, date_starts, date_ends, guests, event_type_id, event_class_id, _ = self.db_handler.get_event_request_extended_info_by_id(event_id)
             _, event_class_name, guests_per_waiter = self.db_handler.get_event_class_by_id(event_class_id)
 
-            distance_in_km = self.get_geopy_diatance(location)
+            distance_in_km = self.get_geopy_distance(location)
             price = distance_in_km * config.PRICE_OF_KM
             num_of_staff = math.ceil(guests / guests_per_waiter)
 
@@ -724,7 +724,7 @@ class Model:
             self.logger.write_to_log('exception', 'model')
             self.logger.write_to_err_log(f'exception in method {method_name} - {err}', 'model')
 
-    def get_geopy_diatance(self, location):
+    def get_geopy_distance(self, location):
         """
         Returns distance in km to place where event going to be
         :param location: string with location of event
@@ -1170,12 +1170,41 @@ class Model:
             res = False
             self.logger.write_to_log(f'requested shift supervisor status', 'model')
             shift_registration = self.db_handler.get_event_date_by_shift_registration_id_and_staff_id(shift_reg_id, staff_id)
-            event_data = self.db_handler.get_shift_extended_info_by_id(shift_registration[0])
 
-            if str(event_data[5]) == str(staff_id):
+            if shift_registration is not None:
+                event_data = self.db_handler.get_shift_extended_info_by_id(shift_registration[0])
+
+                if str(event_data[5]) == str(staff_id):
+                    res = True
+
+                self.logger.write_to_log(f'got shift supervisor status', 'model')
+
+            return res
+        except Exception as err:
+            method_name = sys._getframe().f_code.co_name
+
+            self.logger.write_to_log('exception', 'model')
+            self.logger.write_to_err_log(f'exception in method {method_name} - {err}', 'model')
+
+    def check_out_off_shift(self, staff_id, shift_reg_id):
+        """
+        Checks if check out is made not earlier than event ends
+        :param staff_id: staff telegram id
+        :param shift_reg_id: shift request id
+        :return: true if event is ended already, false if not
+        """
+        try:
+            res = False
+
+            date = datetime.now()
+            mysql_date = f'{date.year}-{date.month}-{date.day} {date.hour}:{date.minute}:00'
+            dates = self.db_handler.get_event_date_by_shift_registration_id_and_staff_id(shift_reg_id, staff_id)
+
+            diff = dates[3] - date
+
+            if diff.days <= 0 and diff.seconds >= 0:
                 res = True
-
-            self.logger.write_to_log(f'got shift supervisor status', 'model')
+                self.db_handler.check_out_off_shift(shift_reg_id, mysql_date)
 
             return res
         except Exception as err:

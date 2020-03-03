@@ -1553,6 +1553,43 @@ def cancel_shift_reg_id_handler(call):
         logger.write_to_err_log(f'exception in method {method_name} - {err}', 'controller')
 
 
+@bot.callback_query_handler(func=lambda call: call.data == 'check_out')
+def check_out_handler(call):
+    try:
+        shift_registrations = model.get_staffs_shift_registrations(call.message.chat.id)
+        now_on_shift = False
+        current_shift_id = 0
+        current_shift_reg_id = 0
+
+        for sh_reg in shift_registrations:
+            if sh_reg[4] == 1:
+                if sh_reg[5] is not None and (sh_reg[6] is None or sh_reg[6] == ''):
+                    now_on_shift = True
+                    current_shift_reg_id = sh_reg[0]
+                    current_shift_id = sh_reg[1]
+                    break
+        msg = 'f'
+        inline_kb = types.InlineKeyboardMarkup()
+
+        if model.check_out_off_shift(call.message.chat.id, current_shift_reg_id):
+            msg = f'Зміну було успішно завершено!'
+        else:
+            msg= f'Зміну не може бути завершено до закінчення події!'
+
+        inline_kb.row(types.InlineKeyboardButton(text=f'{emojize(" :back:", use_aliases=True)}Повернутись до меню',
+                                                 callback_data='main_menu'))
+
+        bot.edit_message_text(chat_id=call.message.chat.id,
+                              message_id=call.message.message_id,
+                              text=msg,
+                              reply_markup=inline_kb)
+
+    except Exception as err:
+        method_name = sys._getframe( ).f_code.co_name
+
+        logger.write_to_log('exception', 'controller')
+        logger.write_to_err_log(f'exception in method {method_name} - {err}', 'controller')
+
 
 def check_shifts_with_supervisor(shifts):
     """

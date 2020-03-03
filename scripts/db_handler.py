@@ -933,5 +933,12 @@ class DbHandler:
         self.curs.execute(q)
         self.connect.commit()
 
+    @check_session_time_alive
+    def check_out_off_shift(self, *args):
+        shift_reg_id, time = args[0]
 
+        q = f"update shift_registration set check_out='{time}' where id={shift_reg_id};"
+
+        self.curs.execute(q)
+        self.connect.commit()
 
