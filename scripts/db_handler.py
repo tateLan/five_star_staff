@@ -944,3 +944,25 @@ class DbHandler:
         self.curs.execute(q)
         self.connect.commit()
 
+    @check_session_time_alive
+    def get_staff_on_shift(self, *args):
+        shift_id = args[0][0]
+
+        q = f'select s.id, first_name, middle_name, last_name, q.degree, current_rating, events_done ' \
+            f'from (shift_registration sr left join staff s on sr.staff_id = s.id) ' \
+            f'left join qualification q on s.qualification=q.id ' \
+            f'where shift_id={shift_id}'
+
+        self.curs.execute(q)
+
+        return  self.curs.fetchall()
+
+    @check_session_time_alive
+    def get_supervisor_on_shift(self, *args):
+        shift_id = args[0][0]
+
+        q = f'select supervisor from shift where id={shift_id}'
+
+        self.curs.execute(q)
+
+        return self.curs.fetchone()

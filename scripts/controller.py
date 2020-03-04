@@ -1591,6 +1591,65 @@ def check_out_handler(call):
         logger.write_to_err_log(f'exception in method {method_name} - {err}', 'controller')
 
 
+@bot.callback_query_handler(func=lambda call:call.data.split('manage_shift_for_supervisor_shift:').__len__() > 1)
+def manage_shift_for_supervisor_shift_handler(call):
+    try:
+        shift_id = call.data.split('manage_shift_for_supervisor_shift:')[1]
+        msg = f'Виберіть дію, яку хочете здійснити:'
+        inline_kb = types.InlineKeyboardMarkup()
+
+        get_staff_list = types.InlineKeyboardButton(text=f'{emojize(" :busts_in_silhouette:", use_aliases=True)}Список зареєстрованих на зміну', callback_data=f'staff_list_for_shift:{shift_id}')
+        set_rating = types.InlineKeyboardButton(text=f'{emojize(" :bar_chart:", use_aliases=True)}Виставити рейтинг', callback_data=f'set_staff_rating_for_shift:{shift_id}')
+        end_shift = types.InlineKeyboardButton(text=f'{emojize(" :lock:", use_aliases=True)}Закрити зміну', callback_data=f'end_shift:{shift_id}')
+
+        inline_kb.row(get_staff_list)
+        inline_kb.row(set_rating)
+        inline_kb.row(end_shift)
+
+        inline_kb.row(types.InlineKeyboardButton(text=f'{emojize(" :back:", use_aliases=True)}Повернутись до меню',
+                                                 callback_data='main_menu'))
+
+        bot.edit_message_text(chat_id=call.message.chat.id,
+                              message_id=call.message.message_id,
+                              text=msg,
+                              reply_markup=inline_kb)
+    except Exception as err:
+        method_name = sys._getframe( ).f_code.co_name
+
+        logger.write_to_log('exception', 'controller')
+        logger.write_to_err_log(f'exception in method {method_name} - {err}', 'controller')
+
+
+@bot.callback_query_handler(func=lambda call: call.data.split('staff_list_for_shift:').__len__() > 1)
+def staff_list_for_shift_handler(call):
+    try:
+        shift_id = call.data.split('staff_list_for_shift:')[1]
+
+        staff_registered, supervisor = model.get_staff_registered_to_shift(shift_id)
+
+        msg = f'Список зареєстрованих на зміну:\n' \
+              f'{"-" * 20}\n' \
+              f'Прізвище|Ім\'я|По-батькові|Кваліфікація|Рейтинг|Подій|\n' \
+              f'{"-" * 20}\n\n'
+        inline_kb = types.InlineKeyboardMarkup()
+
+        for staff in staff_registered:
+            msg += f'{staff[3]} {staff[1]} {staff[2]} {staff[4]} {staff[5]} {staff[6]} {emojize(":cop:", use_aliases=True) if staff[0] == supervisor[0] else ""}\n'
+
+        inline_kb.row(types.InlineKeyboardButton(text=f'{emojize(" :back:", use_aliases=True)}Повернутись до меню',
+                                                 callback_data='main_menu'))
+
+        bot.edit_message_text(chat_id=call.message.chat.id,
+                              message_id=call.message.message_id,
+                              text=msg,
+                              reply_markup=inline_kb)
+    except Exception as err:
+        method_name = sys._getframe( ).f_code.co_name
+
+        logger.write_to_log('exception', 'controller')
+        logger.write_to_err_log(f'exception in method {method_name} - {err}', 'controller')
+
+
 def check_shifts_with_supervisor(shifts):
     """
     Counts number of shifts with supervisors and without em

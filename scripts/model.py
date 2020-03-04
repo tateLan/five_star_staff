@@ -1212,3 +1212,23 @@ class Model:
 
             self.logger.write_to_log('exception', 'model')
             self.logger.write_to_err_log(f'exception in method {method_name} - {err}', 'model')
+
+    def get_staff_registered_to_shift(self, shift_id):
+        """
+        Returns list of staff registered for shift
+        :param shift_id: shift id
+        :return: set of list of staff registered, and id of supervisor
+        """
+        try:
+            self.logger.write_to_log(f'requested staff list for shift {shift_id}', 'model')
+
+            shift_list = self.db_handler.get_staff_on_shift(shift_id)
+            supervisor = self.db_handler.get_supervisor_on_shift(shift_id)
+
+            self.logger.write_to_log(f'got staff list for shift {shift_id}', 'model')
+            return shift_list, supervisor
+        except Exception as err:
+            method_name = sys._getframe().f_code.co_name
+
+            self.logger.write_to_log('exception', 'model')
+            self.logger.write_to_err_log(f'exception in method {method_name} - {err}', 'model')
