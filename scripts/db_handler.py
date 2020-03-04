@@ -705,9 +705,11 @@ class DbHandler:
         """
         :return:list of shifts which is yet to start
         """
-        q = 'select s.id, s.event_id, s.profesionals_number, s.middles_number, s.beginers_number, s.supervisor ' \
-            'from shift s left join events e on s.event_id = e.id ' \
-            'where e.date_starts > now()'
+        date = datetime.now()
+        mysql_date = f'{date.year}-{date.month}-{date.day} {date.hour}:{date.minute}:00'
+        q = f"select s.id, s.event_id, s.profesionals_number, s.middles_number, s.beginers_number, s.supervisor " \
+            f"from shift s left join events e on s.event_id = e.id " \
+            f"where e.date_starts > '{mysql_date}'"
 
         self.curs.execute(q)
 
