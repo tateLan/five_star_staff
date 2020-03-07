@@ -1926,7 +1926,7 @@ def show_main_menu(message, user_role, edit=False):
                         break
 
             for sh in shifts_ext:
-                if (sh[8]-datetime.now()).seconds > 0:
+                if ((sh[8]-datetime.now()).seconds > 0) and ((sh[8] - datetime.now()).days >= 0):
                     if sh[0] != current_shift_id:
                         upcoming_shifts += 1
 

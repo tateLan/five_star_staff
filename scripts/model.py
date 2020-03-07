@@ -999,8 +999,8 @@ class Model:
                     continue
 
                 for reg in registered_to_shift:
-                    if reg[2] != staff_id:
-                        worker = self.db_handler.get_staff_by_id(reg[2])
+                    if reg[0] != staff_id:
+                        worker = self.db_handler.get_staff_by_id(reg[0])
                         if worker[5] == staff_qualification_id:
                             staff_current_quali_registered += 1
 
@@ -1205,6 +1205,10 @@ class Model:
             if diff.days <= 0 and diff.seconds >= 0:
                 res = True
                 self.db_handler.check_out_off_shift(shift_reg_id, mysql_date)
+
+                events_count = self.db_handler.get_staff_event_number(staff_id)[0]
+                self.db_handler.update_staff_events_count(staff_id, events_count+1)
+                self.logger.write_to_log(f'staff {staff_id} events number were updated', 'model')
 
             return res
         except Exception as err:

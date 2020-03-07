@@ -868,7 +868,8 @@ class DbHandler:
 
         q = f'select shift_registration.id, title, date_starts, date_ends, check_in, check_out, rating, payment ' \
             f'from (shift_registration left join shift s on shift_registration.shift_id = s.id) ' \
-            f'left join events e on e.id = s.event_id where staff_id={staff_id} and registered=1;'
+            f'left join events e on e.id = s.event_id ' \
+            f'where staff_id={staff_id} and registered=1 and check_out is null;'
 
         self.curs.execute(q)
 
@@ -966,3 +967,25 @@ class DbHandler:
         self.curs.execute(q)
 
         return self.curs.fetchone()
+
+    @check_session_time_alive
+    def get_staff_event_number(self, *args):
+        staff_id = args[0][0]
+
+        q = f'select events_done from staff where id={staff_id};'
+
+        self.curs.execute(q)
+
+        return self.curs.fetchone()
+
+    @check_session_time_alive
+    def update_staff_events_count(self, *args):
+        staff_id, events = args[0]
+
+        q = f'update staff set events_done={events} where id={staff_id}'
+
+        self.curs.execute(q)
+        self.connect.commit()
+
+
+
