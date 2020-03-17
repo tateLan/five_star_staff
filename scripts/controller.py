@@ -1650,6 +1650,109 @@ def staff_list_for_shift_handler(call):
         logger.write_to_err_log(f'exception in method {method_name} - {err}', 'controller')
 
 
+@bot.callback_query_handler(func=lambda call: call.data.split('set_staff_rating_for_shift:').__len__() > 1)
+def set_staff_rating_for_shift_handler(call):
+    try:
+        shift_id = call.data.split('set_staff_rating_for_shift:')[1]
+        flag = False
+
+        msg = f'Виберіть працівника, якому будете присвоювати рейтинг:'
+        inline_kb = types.InlineKeyboardMarkup()
+
+        staff_list = model.get_staff_list_to_set_rating(shift_id)
+
+        if type(staff_list) is list:
+            if len(staff_list) > 0:
+                for staff in staff_list:
+                    if int(staff[0]) != int(call.message.chat.id):
+                        inline_kb.row(types.InlineKeyboardButton(
+                            text=f'{staff[3]} {staff[1]} {staff[2]} {staff[4]}',
+                            callback_data=f'pick_staff_rating_for_shift:{shift_id}_staff:{staff[0]}')
+                        )
+                        flag = True
+            else:
+                msg = 'На зміну не було зареєстровано достатня кількість працівників'
+            if not flag:
+                msg = 'Працівники для присвоєння рейтингу відсутні. ' \
+                      'Ваш рейтинг буде згенеровано на основі відгуку клієнта'
+        else:
+            msg = 'Виставлення рейтингу доступне тільки після завершення зміни!'
+
+
+
+        inline_kb.row(types.InlineKeyboardButton(text=f'{emojize(" :back:", use_aliases=True)}Повернутись до меню',
+                                                 callback_data='main_menu'))
+
+        bot.edit_message_text(chat_id=call.message.chat.id,
+                              message_id=call.message.message_id,
+                              text=msg,
+                              reply_markup=inline_kb)
+    except Exception as err:
+        method_name = sys._getframe( ).f_code.co_name
+
+        logger.write_to_log('exception', 'controller')
+        logger.write_to_err_log(f'exception in method {method_name} - {err}', 'controller')
+
+
+@bot.callback_query_handler(func=lambda call: len(call.data.split('pick_staff_rating_for_shift:')) > 1)
+def pick_staff_rating_for_shift_handler(call):
+    try:
+        shift_id = call.data.split('pick_staff_rating_for_shift:')[1].split('_')[0]
+        staff_id = call.data.split('_staff:')[1]
+
+        staff = model.get_staff_by_id(staff_id)
+        shift = model.get_shift_extended_info_by_id(shift_id)
+
+        msg = f'Виберіть рейтинг за зміну * {shift[6]} {shift[8]} * працівнику {staff[3]} {staff[1]} {staff[2]}:'
+
+        inline_kb = types.InlineKeyboardMarkup()
+
+        for i in range(1, 6):
+            inline_kb.row(types.InlineKeyboardButton(text=f'{emojize(" :star:", use_aliases=True) * i}',
+                                                     callback_data=f'write_staff_rating_for_shift:{shift_id}_staff:{staff_id}_set:{i}'))
+
+        inline_kb.row(types.InlineKeyboardButton(text=f'{emojize(" :back:", use_aliases=True)}Повернутись до меню',
+                                             callback_data='main_menu'))
+
+        bot.edit_message_text(chat_id=call.message.chat.id,
+                          message_id=call.message.message_id,
+                          text=msg,
+                          parse_mode='Markdown',
+                          reply_markup=inline_kb)
+    except Exception as err:
+        method_name = sys._getframe().f_code.co_name
+
+        logger.write_to_log('exception', 'controller')
+        logger.write_to_err_log(f'exception in method {method_name} - {err}', 'controller')
+
+
+@bot.callback_query_handler(func=lambda call: len(call.data.split('write_staff_rating_for_shift:')) > 1)
+def write_staff_rating_for_shift_handler(call):
+    try:
+        shift_id = call.data.split('write_staff_rating_for_shift:')[1].split('_')[0]
+        staff_id = call.data.split('_staff:')[1].split('_')[0]
+        rating = call.data.split('_set:')[1]
+
+        model.set_staff_rating_for_shift(staff_id, shift_id, rating)
+
+        msg = f'{emojize(":tada:", use_aliases=True)}Рейтинг було успішно призначено!'
+        inline_kb = types.InlineKeyboardMarkup()
+
+        inline_kb.row(types.InlineKeyboardButton(text=f'{emojize(" :back:", use_aliases=True)}Повернутись до меню',
+                                                 callback_data='main_menu'))
+
+        bot.edit_message_text(chat_id=call.message.chat.id,
+                              message_id=call.message.message_id,
+                              text=msg,
+                              parse_mode='Markdown',
+                              reply_markup=inline_kb)
+    except Exception as err:
+        method_name = sys._getframe().f_code.co_name
+
+        logger.write_to_log('exception', 'controller')
+        logger.write_to_err_log(f'exception in method {method_name} - {err}', 'controller')
+
+
 def check_shifts_with_supervisor(shifts):
     """
     Counts number of shifts with supervisors and without em

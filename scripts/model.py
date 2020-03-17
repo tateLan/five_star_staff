@@ -1046,7 +1046,7 @@ class Model:
                             break
                     else:   # pretending is later
                         diff = shift_pretending[8] - shift[1]
-                        interval = (diff - (shift[2] - shift[1])).seconds / 3600
+                        interval = (diff.days * 24) + (diff - (shift[2] - shift[1])).seconds / 3600
                         if interval >= config.HOURS_BETWEEN_SHIFTS:
                             conflict = False
                         else:
@@ -1231,6 +1231,69 @@ class Model:
 
             self.logger.write_to_log(f'got staff list for shift {shift_id}', 'model')
             return shift_list, supervisor
+        except Exception as err:
+            method_name = sys._getframe().f_code.co_name
+
+            self.logger.write_to_log('exception', 'model')
+            self.logger.write_to_err_log(f'exception in method {method_name} - {err}', 'model')
+
+    def get_staff_list_to_set_rating(self, shift_id):
+        """
+        Returns list of staff worked on shift, for setting rating, if event is ended
+        :param shift_id: shift id
+        :return: list of staff if event is over, empty list, or 0 if there's too early
+        """
+        try:
+            self.logger.write_to_log('requested staff list for setting rating', 'model')
+
+            res = []
+            status = 1
+
+            shift = self.db_handler.get_shift_extended_info_by_id(shift_id)
+            date = datetime.now()
+
+            diff = date-shift[9]
+
+            if diff.days >= 0 and diff.seconds >= 0:
+                staff_on_shift = self.db_handler.get_staff_on_shift(shift_id)
+
+                for sos in staff_on_shift:
+                    rating = self.db_handler.get_staff_rating_for_shift(sos[0], shift_id)
+                    if rating is None or rating == '':
+                        res.append(sos)
+
+                self.logger.write_to_log('got staff list for setting rating', 'model')
+            else:
+                status = 0
+                self.logger.write_to_log('staff list for setting rating was not formed', 'model')
+
+            if status == 1:
+                return res
+            else:
+                return status
+        except Exception as err:
+            method_name = sys._getframe().f_code.co_name
+
+            self.logger.write_to_log('exception', 'model')
+            self.logger.write_to_err_log(f'exception in method {method_name} - {err}', 'model')
+
+    def set_staff_rating_for_shift(self, staff_id, shift_id, rating):
+        """
+        Setting rating to staff
+        :param staff_id: staff telegram id
+        :param shift_id: shift id
+        :param rating: rating of staff from 1 to 5
+        :return: None
+        """
+        try:
+            self.db_handler.set_staff_rating_for_shift(staff_id, shift_id, rating)
+            self.logger.write_to_log(f'rating set to user {staff_id} for shift {shift_id}', 'model')
+
+            sh_reg = self.db_handler.get_shift_registration_by_staff_id_and_shift_id(staff_id, shift_id)
+
+            self.check_out_off_shift(staff_id, sh_reg[0])
+            staff = self.db_handler.get_staff_by_id(staff_id)
+
         except Exception as err:
             method_name = sys._getframe().f_code.co_name
 

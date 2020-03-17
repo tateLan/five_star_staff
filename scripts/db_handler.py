@@ -847,7 +847,7 @@ class DbHandler:
 
         q = f'select title, date_starts, date_ends ' \
             f'from (shift_registration left join shift s on shift_registration.shift_id = s.id) ' \
-            f'left join events e on e.id = s.event_id where staff_id={staff_id} and registered=1;'
+            f'left join events e on e.id = s.event_id where staff_id={staff_id} and registered=1 and e.date_ends > now();'
 
         self.curs.execute(q)
 
@@ -986,6 +986,26 @@ class DbHandler:
 
         self.curs.execute(q)
         self.connect.commit()
+
+    @check_session_time_alive
+    def get_staff_rating_for_shift(self, *args):
+        staff_id, shift_id = args[0]
+
+        q = f'select rating from shift_registration where staff_id={staff_id} and shift_id={shift_id};'
+
+        self.curs.execute(q)
+
+        return self.curs.fetchone()
+
+    @check_session_time_alive
+    def set_staff_rating_for_shift(self, *args):
+        staff_id, shift_id, rating = args[0]
+
+        q = f'update shift_registration set rating={rating} where shift_id={shift_id} and staff_id={staff_id};'
+
+        self.curs.execute(q)
+        self.connect.commit()
+
 
 
 
