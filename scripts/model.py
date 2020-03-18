@@ -1201,15 +1201,15 @@ class Model:
             dates = self.db_handler.get_event_date_by_shift_registration_id_and_staff_id(shift_reg_id, staff_id)
 
             diff = dates[3] - date
+            shift_reg = self.db_handler.get_shift_registration_by_shift_reg_id(shift_reg_id)
 
             if diff.days <= 0 and diff.seconds >= 0:
                 res = True
+
+                if shift_reg[6] is not None:
+                    mysql_date = f'{shift_reg[6].year}-{shift_reg[6].month}-{shift_reg[6].day} {shift_reg[6].hour}:{shift_reg[6].minute}:00'
+
                 self.db_handler.check_out_off_shift(shift_reg_id, mysql_date)
-
-                events_count = self.db_handler.get_staff_event_number(staff_id)[0]
-                self.db_handler.update_staff_events_count(staff_id, events_count+1)
-                self.logger.write_to_log(f'staff {staff_id} events number were updated', 'model')
-
             return res
         except Exception as err:
             method_name = sys._getframe().f_code.co_name
@@ -1259,7 +1259,7 @@ class Model:
 
                 for sos in staff_on_shift:
                     rating = self.db_handler.get_staff_rating_for_shift(sos[0], shift_id)
-                    if rating is None or rating == '':
+                    if rating[0] is None or rating[0] == '':
                         res.append(sos)
 
                 self.logger.write_to_log('got staff list for setting rating', 'model')
@@ -1292,8 +1292,45 @@ class Model:
             sh_reg = self.db_handler.get_shift_registration_by_staff_id_and_shift_id(staff_id, shift_id)
 
             self.check_out_off_shift(staff_id, sh_reg[0])
-            staff = self.db_handler.get_staff_by_id(staff_id)
+            self.calculate_payment_for_shift(shift_id, staff_id)
+            self.update_staff_rating(staff_id)
 
+        except Exception as err:
+            method_name = sys._getframe().f_code.co_name
+
+            self.logger.write_to_log('exception', 'model')
+            self.logger.write_to_err_log(f'exception in method {method_name} - {err}', 'model')
+
+    def calculate_payment_for_shift(self, shift_id, staff_id):
+        try:
+            staff = self.db_handler.get_staff_by_id(staff_id)
+            shift_reg = self.db_handler.get_shift_registration_by_staff_id_and_shift_id(staff_id, shift_id)
+
+            on_shift = shift_reg[6] - shift_reg[5]
+            payment = ((on_shift.days * 24) + (on_shift.seconds / 3600)) * float(staff[10])
+            payment += round((payment / 100) * (float(shift_reg[7]) * 3), 2)    # bonus for rating
+
+            self.db_handler.set_payment_for_shift(shift_id, staff_id, payment)
+            self.logger.write_to_log('payment for shift calculated and set to user', 'model')
+        except Exception as err:
+            method_name = sys._getframe().f_code.co_name
+
+            self.logger.write_to_log('exception', 'model')
+            self.logger.write_to_err_log(f'exception in method {method_name} - {err}', 'model')
+
+    def update_staff_rating(self, staff_id):
+        try:
+            ratings = self.db_handler.get_staff_shift_ratings(staff_id)
+
+            rating = 0
+
+            for shift_reg in ratings:
+                rating += float(shift_reg[7])
+
+            rating /= len(ratings)
+
+            self.db_handler.update_staff_rating_and_events_count(staff_id, rating, len(ratings))
+            self.logger.write_to_log(f'staff {staff_id} events number were updated', 'model')
         except Exception as err:
             method_name = sys._getframe().f_code.co_name
 

@@ -979,10 +979,10 @@ class DbHandler:
         return self.curs.fetchone()
 
     @check_session_time_alive
-    def update_staff_events_count(self, *args):
-        staff_id, events = args[0]
+    def update_staff_rating_and_events_count(self, *args):
+        staff_id, rating, events = args[0]
 
-        q = f'update staff set events_done={events} where id={staff_id}'
+        q = f'update staff set events_done={events}, current_rating={rating} where id={staff_id}'
 
         self.curs.execute(q)
         self.connect.commit()
@@ -1006,6 +1006,34 @@ class DbHandler:
         self.curs.execute(q)
         self.connect.commit()
 
+    @check_session_time_alive
+    def set_payment_for_shift(self, *args):
+        shift_id, staff_id, payment = args[0]
 
+        q = f'update shift_registration set payment={payment} ' \
+            f'where staff_id={staff_id} and shift_id={shift_id};'
+
+        self.curs.execute(q)
+        self.connect.commit()
+
+    @check_session_time_alive
+    def get_staff_shift_ratings(self, *args):
+        staff_id = args[0][0]
+
+        q = f'select * from shift_registration ' \
+            f'where staff_id={staff_id} and registered = 1 and rating is not null;'
+
+        self.curs.execute(q)
+
+        return self.curs.fetchall()
+
+    @check_session_time_alive
+    def get_shift_registration_by_shift_reg_id(self, *args):
+        shift_reg_id = args[0][0]
+
+        q = f'select * from shift_registration where id={shift_reg_id};'
+        self.curs.execute(q)
+
+        return self.curs.fetchone()
 
 
