@@ -1336,3 +1336,40 @@ class Model:
 
             self.logger.write_to_log('exception', 'model')
             self.logger.write_to_err_log(f'exception in method {method_name} - {err}', 'model')
+
+    def close_shift(self, shift_id, supervisor_id):
+        """
+        Checks if all conditions satisfied, for ending shift
+        :param shift_id: id of shift
+        :param supervisor_id: telegram id of supervisor
+        :return: False if its too early to close shift, True, if shift is ended
+        """
+        try:
+            res = False
+            event = self.db_handler.get_shift_extended_info_by_id(shift_id)
+            staff_on_shift = self.db_handler.get_staff_on_shift_for_closing(shift_id)
+            staff_all_set_up = 0
+            sh_reg = self.db_handler.get_shift_registration_by_staff_id_and_shift_id(supervisor_id, shift_id)
+
+            diff = datetime.now() - event[9]
+
+            if diff.days >= 0 and diff.seconds >= 0:
+                for staff in staff_on_shift:
+                    if str(staff[0]) != str(supervisor_id):
+                        if staff[1] is not None and staff[2] is not None:
+                            staff_all_set_up += 1
+
+                if staff_all_set_up == len(staff_on_shift)-1:   # supervisor anyway is on shift
+                    res = True
+            else:
+                res = False    # too early
+
+            if res:
+                self.check_out_off_shift(supervisor_id, sh_reg[0])
+
+            return res
+        except Exception as err:
+            method_name = sys._getframe().f_code.co_name
+
+            self.logger.write_to_log('exception', 'model')
+            self.logger.write_to_err_log(f'exception in method {method_name} - {err}', 'model')

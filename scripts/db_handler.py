@@ -1036,4 +1036,22 @@ class DbHandler:
 
         return self.curs.fetchone()
 
+    @check_session_time_alive
+    def get_staff_on_shift_for_rating(self, *args):
+        shift_id = args[0][0]
+
+        q = f'select * from shift_registration where registered=1 and shift_id={shift_id};'
+
+        self.curs.execute(q)
+        return self.curs.fetchall()
+
+    @check_session_time_alive
+    def get_staff_on_shift_for_closing(self, *args):
+        shift_id = args[0][0]
+
+        q = f'select staff_id, check_out, rating from shift_registration where shift_id={shift_id};'
+
+        self.curs.execute(q)
+
+        return self.curs.fetchall()
 

@@ -1753,6 +1753,36 @@ def write_staff_rating_for_shift_handler(call):
         logger.write_to_err_log(f'exception in method {method_name} - {err}', 'controller')
 
 
+@bot.callback_query_handler(func=lambda call: len(call.data.split('end_shift:')) > 1)
+def end_overall_shift_handler(call):
+    try:
+        shift_id = call.data.split('end_shift:')[1]
+
+        result = model.close_shift(shift_id, call.message.chat.id)
+        msg = ''
+
+        if result:
+            msg = f'{emojize(":tada:", use_aliases=True)}Зміну було успішно закрито!'
+        else:
+            msg = f'Зміну не було закрито, оскільки у деяких працівників не було виставлено рейтинг. ' \
+                  f'Перевірте дані, та спробуйте знову'
+        inline_kb = types.InlineKeyboardMarkup()
+
+        inline_kb.row(types.InlineKeyboardButton(text=f'{emojize(" :back:", use_aliases=True)}Повернутись до меню',
+                                                 callback_data='main_menu'))
+
+        bot.edit_message_text(chat_id=call.message.chat.id,
+                              message_id=call.message.message_id,
+                              text=msg,
+                              parse_mode='Markdown',
+                              reply_markup=inline_kb)
+    except Exception as err:
+        method_name = sys._getframe().f_code.co_name
+
+        logger.write_to_log('exception', 'controller')
+        logger.write_to_err_log(f'exception in method {method_name} - {err}', 'controller')
+
+
 def check_shifts_with_supervisor(shifts):
     """
     Counts number of shifts with supervisors and without em
