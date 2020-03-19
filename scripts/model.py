@@ -1373,3 +1373,26 @@ class Model:
 
             self.logger.write_to_log('exception', 'model')
             self.logger.write_to_err_log(f'exception in method {method_name} - {err}', 'model')
+
+    def get_staff_ended_shifts(self, staff_id, page):
+        """
+        Returns n of ended shifts, by staff telegram id.
+            N is set up in config file by ENDED_SHIFTS_ON_ONE_PAGE
+        :param staff_id: staff telegram id
+        :param page: page of results
+        :return: set of overall number of pages, and list of ended shifts
+        """
+        try:
+            overall_shifts = self.db_handler.get_ended_staff_shifts(staff_id)
+            res = []
+            size = config.ENDED_SHIFTS_ON_ONE_PAGE
+
+            res = overall_shifts[page*size : (page*size) + size]
+            self.logger.write_to_log('list of ended shifts of staff is here', str(staff_id))
+
+            return math.ceil(len(overall_shifts) / size) , res
+        except Exception as err:
+            method_name = sys._getframe().f_code.co_name
+
+            self.logger.write_to_log('exception', 'model')
+            self.logger.write_to_err_log(f'exception in method {method_name} - {err}', 'model')
