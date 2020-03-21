@@ -7,6 +7,8 @@ import geopy.distance
 import math
 import sys
 
+from setuptools.command.setopt import setopt
+
 
 class Model:
     def __init__(self, bot, logger, notifier):
@@ -1381,7 +1383,7 @@ class Model:
     def get_staff_ended_shifts(self, staff_id, page):
         """
         Returns n of ended shifts, by staff telegram id.
-            N is set up in config file by ENDED_SHIFTS_ON_ONE_PAGE
+            N is set up in config file by STAT_ITEMS_ON_ONE_PAGE
         :param staff_id: staff telegram id
         :param page: page of results
         :return: set of overall number of pages, and list of ended shifts
@@ -1389,7 +1391,7 @@ class Model:
         try:
             overall_shifts = self.db_handler.get_ended_staff_shifts(staff_id)
             res = []
-            size = config.ENDED_SHIFTS_ON_ONE_PAGE
+            size = config.STAT_ITEMS_ON_ONE_PAGE
 
             res = overall_shifts[page*size : (page*size) + size]
             self.logger.write_to_log('list of ended shifts of staff is here', str(staff_id))
@@ -1404,14 +1406,14 @@ class Model:
     def get_all_ended_shifts_for_manager_stat(self, page):
         """
         Returns n of ended shifts, by staff telegram id.
-            N is set up in config file by ENDED_SHIFTS_ON_ONE_PAGE
+            N is set up in config file by STAT_ITEMS_ON_ONE_PAGE
         :param page: page of results
         :return: set of overall number of pages, and list of ended shifts
         """
         try:
             overall_shifts = self.db_handler.get_all_ended_shifts()
             res = []
-            size = config.ENDED_SHIFTS_ON_ONE_PAGE
+            size = config.STAT_ITEMS_ON_ONE_PAGE
 
             res = overall_shifts[page * size: (page * size) + size]
             self.logger.write_to_log('list of ended shifts of staff is here', 'model')
@@ -1541,6 +1543,31 @@ class Model:
             msg = general_shift_info + personal_data
 
             return msg
+        except Exception as err:
+            method_name = sys._getframe().f_code.co_name
+
+            self.logger.write_to_log('exception', 'model')
+            self.logger.write_to_err_log(f'exception in method {method_name} - {err}', 'model')
+
+    def get_month_staff_worked(self, staff_id, page):
+        """
+        Generates list of months staff worked by pages. Page contains N months,
+            N is STAT_ITEMS_ON_ONE_PAGE from config
+        :param staff_id: staff telegram id
+        :return: list of strings with month name and year staff worked
+        """
+        try:
+            registrations = self.db_handler.get_staff_shift_registrations_ended(staff_id)
+            month_list = []
+
+            for reg in registrations:
+                if (reg[5].month, reg[5].year) not in month_list:
+                    month_list.append((reg[5].month, reg[5].year))
+
+            size = config.STAT_ITEMS_ON_ONE_PAGE
+            res = month_list[page * size: (page * size) + size]
+
+            return math.ceil(len(month_list) / size), res
         except Exception as err:
             method_name = sys._getframe().f_code.co_name
 

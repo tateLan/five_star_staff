@@ -1125,5 +1125,17 @@ class DbHandler:
 
         return self.curs.fetchall()
 
+    @check_session_time_alive
+    def get_staff_shift_registrations_ended(self, *args):
+        staff_id = args[0][0]
+
+        q = f'select * ' \
+            f'from shift_registration ' \
+            f'where staff_id={staff_id} and registered=1 and check_out is not null ' \
+            f'order by check_out desc '
+
+        self.curs.execute(q)
+
+        return self.curs.fetchall()
 
 

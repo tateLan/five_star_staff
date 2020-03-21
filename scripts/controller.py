@@ -18,7 +18,20 @@ model = md.Model(bot, logger, notifier)
 location_update_queue = {}
 title_update_queue = {}
 staff_update_queue = {}
-
+month_names = {
+                1:'Січень',
+                2:'Лютий',
+                3:'Березень',
+                4:'Квітень',
+                5:'Травень',
+                6:'Червень',
+                7:'Липень',
+                8:'Серпень',
+                9:'Вересень',
+                10:'Жовтень',
+                11:'Листопад',
+                12:'Грудень'
+            }
 
 def init_controller():
     """
@@ -1791,7 +1804,7 @@ def waiter_statistics_handler(call):
         inline_kb = types.InlineKeyboardMarkup()
 
         inline_kb.row(types.InlineKeyboardButton(text=f'{emojize(" :lock:", use_aliases=True)}Архів змін', callback_data=f'shift_archive_page:0'))
-        inline_kb.row(types.InlineKeyboardButton(text=f'{emojize(" :moneybag:", use_aliases=True)}Бухгалтерія', callback_data=f'accounting'))
+        inline_kb.row(types.InlineKeyboardButton(text=f'{emojize(" :moneybag:", use_aliases=True)}Бухгалтерія', callback_data=f'waiter_accounting_page:0'))
 
         inline_kb.row(types.InlineKeyboardButton(text=f'{emojize(" :back:", use_aliases=True)}Повернутись до меню',
                                                  callback_data='main_menu'))
@@ -1907,6 +1920,60 @@ def get_shift_details_sh_reg_id_handler(call):
         inline_kb = types.InlineKeyboardMarkup()
         inline_kb.row(types.InlineKeyboardButton(text=f'{emojize(" :back:", use_aliases=True)}Повернутись до архіву',
                                                  callback_data=f'shift_archive_page:{page}'))
+
+        bot.edit_message_text(chat_id=call.message.chat.id,
+                              message_id=call.message.message_id,
+                              text=msg,
+                              parse_mode='Markdown',
+                              reply_markup=inline_kb)
+    except Exception as err:
+        method_name = sys._getframe().f_code.co_name
+
+        logger.write_to_log('exception', 'controller')
+        logger.write_to_err_log(f'exception in method {method_name} - {err}', 'controller')
+
+
+@bot.callback_query_handler(func=lambda call: call.data.split('waiter_accounting_page:').__len__() > 1)
+def waiter_accounting_handler(call):
+    try:
+        page = int(call.data.split('page:')[1])
+        msg = 'Виберіть місяць, за який хочете отримати статистику:'
+        inline_kb = types.InlineKeyboardMarkup()
+
+        number_of_pages, month_list = model.get_month_staff_worked(call.message.chat.id, page)
+
+        for month in month_list:
+            inline_kb.row(types.InlineKeyboardButton(
+                text=f'{month_names[month[0]]} {month[1]}',
+                callback_data=f'staff_money_report_period:{month[0]}-{month[1]}_page:{page}')
+            )
+
+        next_page_indi = False
+        prev_page_indi = False
+
+        next_page = types.InlineKeyboardButton(text=f'{emojize(" :arrow_forward:", use_aliases=True)}',
+                                               callback_data=f'waiter_accounting_page:{page + 1}')
+        prev_page = types.InlineKeyboardButton(text=f'{emojize(" :arrow_backward:", use_aliases=True)}',
+                                               callback_data=f'waiter_accounting_page:{page - 1}')
+
+        if page + 1 == number_of_pages:
+            next_page_indi = False
+        else:
+            next_page_indi = True
+        if page == 0:
+            prev_page_indi = False
+        else:
+            prev_page_indi = True
+
+        if prev_page_indi and next_page_indi:
+            inline_kb.row(prev_page, next_page)
+        if prev_page_indi and not next_page_indi:
+            inline_kb.row(prev_page)
+        if not prev_page_indi and next_page_indi:
+            inline_kb.row(next_page)
+
+        inline_kb.row(types.InlineKeyboardButton(text=f'{emojize(" :back:", use_aliases=True)}Повернутись до меню',
+                                                 callback_data='main_menu'))
 
         bot.edit_message_text(chat_id=call.message.chat.id,
                               message_id=call.message.message_id,
