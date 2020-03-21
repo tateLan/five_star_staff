@@ -1,5 +1,6 @@
 import config
 from datetime import datetime
+from datetime import timedelta
 import model as md
 import telebot
 from telebot import types
@@ -1971,6 +1972,52 @@ def waiter_accounting_handler(call):
             inline_kb.row(prev_page)
         if not prev_page_indi and next_page_indi:
             inline_kb.row(next_page)
+
+        inline_kb.row(types.InlineKeyboardButton(text=f'{emojize(" :back:", use_aliases=True)}Повернутись до меню',
+                                                 callback_data='main_menu'))
+
+        bot.edit_message_text(chat_id=call.message.chat.id,
+                              message_id=call.message.message_id,
+                              text=msg,
+                              parse_mode='Markdown',
+                              reply_markup=inline_kb)
+    except Exception as err:
+        method_name = sys._getframe().f_code.co_name
+
+        logger.write_to_log('exception', 'controller')
+        logger.write_to_err_log(f'exception in method {method_name} - {err}', 'controller')
+
+
+@bot.callback_query_handler(func=lambda call: call.data.split('staff_money_report_period:').__len__() > 1)
+def staff_money_report_period_handler(call):
+    try:
+        period = call.data.split('staff_money_report_period:')[1].split('_')[0]
+        page = call.data.split('page:')[1]
+        sum = 0
+        overall_worked = timedelta()
+
+        report = model.get_staff_financial_report_for_month(call.message.chat.id, period)
+
+        period_str = f'{month_names[int(period.split("-")[0])]} {period.split("-")[1]}'
+        msg = f'Фінансовий звіт за *{period_str}*\n' \
+              f'Відпрацьованих змін: {len(report)}\n' \
+              f'{"-" * 20}\n'
+
+        for item in report:
+            msg += f'Назва події: *{item[1]}*\n' \
+                   f'{emojize(" :clock4:", use_aliases=True)}Check-in: {item[2]}\n' \
+                   f'{emojize(" :clock430:", use_aliases=True)}Check-out: {item[3]}\n' \
+                   f'{emojize(" :hourglass:", use_aliases=True)}Час на зміні: {item[4]}\n' \
+                   f'{emojize(" :chart_with_upwards_trend:", use_aliases=True)}Рейтинг: {str(item[5]) if item[5] is not None else "Інформація відсутня"}\n' \
+                   f'{emojize(" :moneybag:", use_aliases=True)}Нараховано: {str(item[6]) if item[6] is not None else "Інформація відсутня"}\n' \
+                   f'{"-" * 20}\n'
+            overall_worked += item[4]
+            if item[6] is not None:
+                sum += float(item[6])
+        msg += f'{emojize(" :hourglass:", use_aliases=True)}Відпрацьовано за місяць: *{overall_worked}*\n'
+        msg += f'{emojize(" :moneybag:", use_aliases=True)}Нараховано за місяць: *{sum}*'
+
+        inline_kb = types.InlineKeyboardMarkup()
 
         inline_kb.row(types.InlineKeyboardButton(text=f'{emojize(" :back:", use_aliases=True)}Повернутись до меню',
                                                  callback_data='main_menu'))

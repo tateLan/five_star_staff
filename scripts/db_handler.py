@@ -1138,4 +1138,18 @@ class DbHandler:
 
         return self.curs.fetchall()
 
+    @check_session_time_alive
+    def get_shift_registrations_for_period(self, *args):
+        staff_id, date_from, date_to = args[0]
+
+        q = f"select sr.id, sh.id, title, check_in, check_out, rating, payment " \
+            f"from (shift_registration sr left join shift sh on sr.shift_id = sh.id) " \
+            f"left join events e on e.id = sh.event_id " \
+            f"where staff_id={staff_id} and registered=1 and check_out is not null and " \
+            f"check_in >='{date_from}' and check_in <= '{date_to}'" \
+            f"order by check_in desc;"
+
+        self.curs.execute(q)
+
+        return self.curs.fetchall()
 

@@ -1,3 +1,4 @@
+import calendar
 import db_handler as db
 from datetime import datetime
 import config
@@ -492,8 +493,6 @@ class Model:
                 reply += f'{role_name}ів - {self.db_handler.get_staff_count_by_role(role_id)[0]}\n'
 
             return reply
-
-
         except Exception as err:
             method_name = sys._getframe().f_code.co_name
 
@@ -528,7 +527,6 @@ class Model:
             event_requests = self.db_handler.get_unaccepted_events_list()
 
             return event_requests
-
         except Exception as err:
             method_name = sys._getframe().f_code.co_name
 
@@ -1568,6 +1566,35 @@ class Model:
             res = month_list[page * size: (page * size) + size]
 
             return math.ceil(len(month_list) / size), res
+        except Exception as err:
+            method_name = sys._getframe().f_code.co_name
+
+            self.logger.write_to_log('exception', 'model')
+            self.logger.write_to_err_log(f'exception in method {method_name} - {err}', 'model')
+
+    def get_staff_financial_report_for_month(self,staff_id, period):
+        """
+        Gets staff worked shift for specified month
+        :param staff_id: staff telegram id
+        :param period: string formated 'month-year'
+        :return: list of sets which contains data about ended shift
+        """
+        try:
+            month = int(period.split('-')[0])
+            year = int(period.split('-')[1])
+
+            start_date = datetime(year, month, 1)
+            end_date = datetime(year, month, calendar.monthrange(year, month)[1])
+
+            registrations = self.db_handler.get_shift_registrations_for_period(staff_id, start_date, end_date)
+            res = []
+            i = 1
+
+            for reg in registrations:
+                res.append((i, reg[2], reg[3], reg[4], reg[4]-reg[3], reg[5], reg[6]))
+                i += 1
+
+            return res
         except Exception as err:
             method_name = sys._getframe().f_code.co_name
 
