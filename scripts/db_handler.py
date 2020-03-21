@@ -946,6 +946,13 @@ class DbHandler:
         self.connect.commit()
 
     @check_session_time_alive
+    def update_shift_status(self, *args):
+        shift_id = args[0][0]
+
+        q = f'update shift set ended=1 where id={shift_id};'
+        self.connect.commit()
+
+    @check_session_time_alive
     def get_staff_on_shift(self, *args):
         shift_id = args[0][0]
 
@@ -1067,4 +1074,56 @@ class DbHandler:
         self.curs.execute(q)
 
         return self.curs.fetchall()
+
+    @check_session_time_alive
+    def get_all_ended_shifts(self):
+        q = f'select shift.id, title, events.date_starts, events.date_ends ' \
+            f'from shift left join events on shift.event_id = events.id ' \
+            f'where ended = 1 ' \
+            f'order by date_ends desc'
+
+        self.curs.execute(q)
+
+        return self.curs.fetchall()
+
+    @check_session_time_alive
+    def get_shift_general_info_for_archive(self, *args):
+        shift_id = args[0][0]
+
+        q = f'select title, date_starts, date_ends, guests, et.name_of_event, ec.class ' \
+            f'from ((shift sh left join events e on sh.event_id = e.id) left join event_types et on et.id = e.type_of_event)' \
+            f'left join event_class ec on ec.id = e.event_class where sh.id={shift_id};'
+
+        self.curs.execute(q)
+
+        return self.curs.fetchone()
+
+    @check_session_time_alive
+    def get_waiter_personal_info_from_shift_registration(self, *args):
+        sh_reg_id = args[0][0]
+
+        q = f'select check_in, check_out, rating, payment' \
+            f' from shift_registration where id={sh_reg_id};'
+
+        self.curs.execute(q)
+
+        return self.curs.fetchone()
+
+    @check_session_time_alive
+    def get_shift_info_for_manager(self, *args):
+        shift_id = args[0][0]
+
+        q = f'select * from shift where id={shift_id};'
+
+    @check_session_time_alive
+    def get_shift_registrations_by_shift_id(self, *args):
+        shift_id = args[0][0]
+
+        q = f'select * from shift_registration where shift_id={shift_id} and registered=1;'
+
+        self.curs.execute(q)
+
+        return self.curs.fetchall()
+
+
 

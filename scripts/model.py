@@ -1,10 +1,11 @@
 import db_handler as db
 from datetime import datetime
-from datetime import timedelta
-import sys
 import config
-import math
+from datetime import timedelta
+from emoji import emojize
 import geopy.distance
+import math
+import sys
 
 
 class Model:
@@ -717,6 +718,8 @@ class Model:
             price += middle_staff * config.MID_RATE * hours_of_shift
             price += new_staff * config.NEW_RATE * hours_of_shift
 
+            price += price * 0.4
+
             return (price,proffesional_staff,middle_staff,new_staff)
         except Exception as err:
             method_name = sys._getframe().f_code.co_name
@@ -1164,7 +1167,7 @@ class Model:
         Checks if user is supervisor on shift
         :param shift_reg_id: shift registration id
         :param staff_id: staff telegram id
-        :return: true if staff is suprvisor on shift, false if not
+        :return: true if staff is supervisor on shift, false if not
         """
         try:
             res = False
@@ -1366,6 +1369,7 @@ class Model:
 
             if res:
                 self.check_out_off_shift(supervisor_id, sh_reg[0])
+                self.db_handler.update_shift_status(shift_id)
 
             return res
         except Exception as err:
@@ -1390,7 +1394,153 @@ class Model:
             res = overall_shifts[page*size : (page*size) + size]
             self.logger.write_to_log('list of ended shifts of staff is here', str(staff_id))
 
-            return math.ceil(len(overall_shifts) / size) , res
+            return math.ceil(len(overall_shifts) / size), res
+        except Exception as err:
+            method_name = sys._getframe().f_code.co_name
+
+            self.logger.write_to_log('exception', 'model')
+            self.logger.write_to_err_log(f'exception in method {method_name} - {err}', 'model')
+
+    def get_all_ended_shifts_for_manager_stat(self, page):
+        """
+        Returns n of ended shifts, by staff telegram id.
+            N is set up in config file by ENDED_SHIFTS_ON_ONE_PAGE
+        :param page: page of results
+        :return: set of overall number of pages, and list of ended shifts
+        """
+        try:
+            overall_shifts = self.db_handler.get_all_ended_shifts()
+            res = []
+            size = config.ENDED_SHIFTS_ON_ONE_PAGE
+
+            res = overall_shifts[page * size: (page * size) + size]
+            self.logger.write_to_log('list of ended shifts of staff is here', 'model')
+
+            return math.ceil(len(overall_shifts) / size), res
+        except Exception as err:
+            method_name = sys._getframe().f_code.co_name
+
+            self.logger.write_to_log('exception', 'model')
+            self.logger.write_to_err_log(f'exception in method {method_name} - {err}', 'model')
+
+    def get_shift_report_info_waiter(self, sh_reg_id, is_manager_called=False):
+        """
+        Formats waiter part of shift report in archive
+        :param sh_reg_id: shift registration id
+        :param is_manager_called: indicates if called by waiter or manager
+        :return: string with personal waiter info about shift
+        """
+        try:
+            staff_id = self.db_handler.get_shift_registration_by_shift_reg_id(sh_reg_id)[2]
+            is_supervisor = self.is_staff_supervisor_on_shift(sh_reg_id, staff_id)
+            msg = ''
+
+            if not is_manager_called:
+                if is_supervisor:
+                    msg += f'{emojize(" :cop:", use_aliases=True)}Ви були головним на цій зміні!\n'
+
+            check_in, check_out, rating, payment = self.db_handler.get_waiter_personal_info_from_shift_registration(sh_reg_id)
+
+            msg += f'{emojize(" :heavy_plus_sign:", use_aliases=True)}check-in: {check_in if check_in is not None and check_in !="" else "Інформація тимчасово відсутня"}\n'\
+                   f'{emojize(" :heavy_minus_sign:", use_aliases=True)}check-out: {check_out if check_out is not None and check_out !="" else "Інформація тимчасово відсутня"}\n' \
+                   f'{emojize(" :hourglass:", use_aliases=True)}на зміні: {check_out - check_in}\n'\
+                   f'{emojize(" :chart_with_upwards_trend:", use_aliases=True)}Рейтинг: {rating if rating is not None and rating !="" else "Інформація тимчасово відсутня"}\n'\
+                   f'{emojize(" :moneybag:", use_aliases=True)}Нараховано: *{payment if payment is not None and payment !="" else "Інформація тимчасово відсутня"}*\n'
+
+            return msg
+        except Exception as err:
+            method_name = sys._getframe().f_code.co_name
+
+            self.logger.write_to_log('exception', 'model')
+            self.logger.write_to_err_log(f'exception in method {method_name} - {err}', 'model')
+
+    def get_shift_report_info_manager(self, shift_id):
+        """
+        Generates manager string for shift archive, about shift
+        :param shift_id: shift id
+        :return: string with manager version of information about string
+        """
+        try:
+            _, _, pro, mid, beg, supervisor_id, _, _, _, _, _, _, _, _, price, curr_id  = self.db_handler.get_shift_extended_info_by_id(shift_id)
+            curr_name = [x[1] for x in self.db_handler.get_currencies() if x[0] == curr_id][0]
+            shift_registrations = self.db_handler.get_shift_registrations_by_shift_id(shift_id)
+
+            res = f'На зміну було зареєстровано:\n' \
+                  f'{emojize(":full_moon:", use_aliases=True)}Професіоналів: {pro}\n' \
+                  f'{emojize(":last_quarter_moon:", use_aliases=True)}Середнього рівня: {mid}\n' \
+                  f'{emojize(":new_moon:", use_aliases=True)}Початківців: {beg}\n' \
+                  f'{emojize(":moneybag:", use_aliases=True)}Ціна за подію: {price} {curr_name}\n' \
+                  f'{"-" * 20}\n' \
+                  f'Статистика працівників:\n' \
+                  f'{"-" * 20}\n'
+
+            for sh_reg in shift_registrations:
+                usr = self.db_handler.get_staff_by_id(sh_reg[2])
+                staff_str = f'{usr[3]} {usr[1]} {usr[2]}\n'
+                res += staff_str
+
+                if str(usr[0]) == str(supervisor_id):
+                    res += f'{emojize(":cop:", use_aliases=True)}Головний на зміні\n'
+
+                res += self.get_shift_report_info_waiter(sh_reg[0], is_manager_called=True)
+                res += f'{"-" * 20}\n'
+
+            return res
+
+        except Exception as err:
+            method_name = sys._getframe().f_code.co_name
+
+            self.logger.write_to_log('exception', 'model')
+            self.logger.write_to_err_log(f'exception in method {method_name} - {err}', 'model')
+
+    def get_shift_report_general_info(self, shift_id):
+        """
+        Formats string with general information about shift
+        :param shift_id: shift id
+        :return: string with general information about shift
+        """
+        try:
+            title, date_starts, date_ends, guests, type_event, class_event = self.db_handler.get_shift_general_info_for_archive(shift_id)
+
+            msg = f'{title}\n' \
+                  f'{"-" * 20}\n' \
+                  f'{emojize(" :clock4:", use_aliases=True)}Дата початку: {date_starts}\n' \
+                  f'{emojize(" :clock430:", use_aliases=True)}Дата закінчення: {date_ends}\n' \
+                  f'{emojize(" :tophat:", use_aliases=True)}Кількість гостей :{guests}\n'\
+                  f'{emojize(" :abc:", use_aliases=True)}Тип події: {type_event}\n' \
+                  f'{emojize(" :top:", use_aliases=True)}Клас події :{class_event}\n'
+
+            self.logger.write_to_log('shift general info got', 'model')
+
+            return msg
+        except Exception as err:
+            method_name = sys._getframe().f_code.co_name
+
+            self.logger.write_to_log('exception', 'model')
+            self.logger.write_to_err_log(f'exception in method {method_name} - {err}', 'model')
+
+    def get_shift_report_info(self, shift_id=0, shift_reg_id=0):
+        """
+        Generates message for displaying shift in archive, depends of arguments which where passed in
+        :param shift_id: shift id, if its for waiter, by default 0
+        :param shift_reg_id: shift registration id, if its for manager by default 0
+        :return: string with all needed information about shift
+        """
+        try:
+            personal_data = f'{"-" * 20}\n'
+            general_shift_info = []
+
+            if shift_id == 0:  # waiter
+                shift_id = self.db_handler.get_shift_registration_by_shift_reg_id(shift_reg_id)[1]
+                personal_data += self.get_shift_report_info_waiter(shift_reg_id)
+            elif shift_reg_id == 0:  # manager
+                personal_data += self.get_shift_report_info_manager(shift_id)
+
+            general_shift_info = self.get_shift_report_general_info(shift_id)
+
+            msg = general_shift_info + personal_data
+
+            return msg
         except Exception as err:
             method_name = sys._getframe().f_code.co_name
 

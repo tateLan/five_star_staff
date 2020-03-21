@@ -1823,7 +1823,7 @@ def shift_archive_handler(call):
                   f'{emojize(" :page_facing_up:", use_aliases=True)}Сторінка {page+1}/{number_of_pages}'
             for shift in shifts:
                 inline_kb.row(types.InlineKeyboardButton(text=f'{shift[5]} {shift[4]}',
-                                                         callback_data=f'get_shift_details_sh_reg_id:{shift[0]}'))
+                                                         callback_data=f'get_shift_details_sh_reg_id:{shift[0]}_page:{page}'))
             next_page_indi = False
             prev_page_indi = False
 
@@ -1846,7 +1846,93 @@ def shift_archive_handler(call):
             if not prev_page_indi and next_page_indi:
                 inline_kb.row(next_page)
         elif role_name == 'менеджер':
-            pass
+            number_of_pages, shifts = model.get_all_ended_shifts_for_manager_stat(page)
+
+            msg = f'Список завершених змін:\n' \
+                  f'{emojize(" :page_facing_up:", use_aliases=True)}Сторінка {page + 1}/{number_of_pages}'
+
+            for shift in shifts:
+                inline_kb.row(types.InlineKeyboardButton(text=f'{shift[1]} {shift[2]}',
+                                                         callback_data=f'get_manager_shift_details_id:{shift[0]}_page:{page}'))
+
+            #TODO: finish manager shift statistics
+
+        inline_kb.row(types.InlineKeyboardButton(text=f'{emojize(" :back:", use_aliases=True)}Повернутись до меню',
+                                                 callback_data='main_menu'))
+
+        bot.edit_message_text(chat_id=call.message.chat.id,
+                              message_id=call.message.message_id,
+                              text=msg,
+                              parse_mode='Markdown',
+                              reply_markup=inline_kb)
+    except Exception as err:
+        method_name = sys._getframe().f_code.co_name
+
+        logger.write_to_log('exception', 'controller')
+        logger.write_to_err_log(f'exception in method {method_name} - {err}', 'controller')
+
+
+@bot.callback_query_handler(func=lambda call: call.data.split('get_manager_shift_details_id:').__len__() > 1)
+def get_manager_shift_details_id_handler(call):
+    try:
+        shift_id = call.data.split('get_manager_shift_details_id:')[1].split('_')[0]
+        page = call.data.split('page:')[1]
+
+        msg = model.get_shift_report_info(shift_id=shift_id)
+
+        inline_kb = types.InlineKeyboardMarkup()
+        inline_kb.row(types.InlineKeyboardButton(text=f'{emojize(" :back:", use_aliases=True)}Повернутись до архіву',
+                                                 callback_data=f'shift_archive_page:{page}'))
+
+        bot.edit_message_text(chat_id=call.message.chat.id,
+                              message_id=call.message.message_id,
+                              text=msg,
+                              parse_mode='Markdown',
+                              reply_markup=inline_kb)
+    except Exception as err:
+        method_name = sys._getframe().f_code.co_name
+
+        logger.write_to_log('exception', 'controller')
+        logger.write_to_err_log(f'exception in method {method_name} - {err}', 'controller')
+
+
+@bot.callback_query_handler(func=lambda call:call.data.split('get_shift_details_sh_reg_id:').__len__() > 1)
+def get_shift_details_sh_reg_id_handler(call):
+    try:
+        sh_reg_id = call.data.split('get_shift_details_sh_reg_id:')[1].split('_')[0]
+        page = call.data.split('page:')[1]
+
+        msg = model.get_shift_report_info(shift_reg_id=sh_reg_id)
+
+        inline_kb = types.InlineKeyboardMarkup()
+        inline_kb.row(types.InlineKeyboardButton(text=f'{emojize(" :back:", use_aliases=True)}Повернутись до архіву',
+                                                 callback_data=f'shift_archive_page:{page}'))
+
+        bot.edit_message_text(chat_id=call.message.chat.id,
+                              message_id=call.message.message_id,
+                              text=msg,
+                              parse_mode='Markdown',
+                              reply_markup=inline_kb)
+    except Exception as err:
+        method_name = sys._getframe().f_code.co_name
+
+        logger.write_to_log('exception', 'controller')
+        logger.write_to_err_log(f'exception in method {method_name} - {err}', 'controller')
+
+
+@bot.callback_query_handler(func=lambda call: call.data == 'get_manager_statistics')
+def get_manager_statistics_handler(call):
+    try:
+        msg = f'Виберіть інформацію, яка вас цікавить'
+
+        inline_kb = types.InlineKeyboardMarkup()
+
+        inline_kb.row(types.InlineKeyboardButton(text=f'{emojize(" :lock:", use_aliases=True)}Архів змін',
+                                                 callback_data=f'shift_archive_page:0'))
+        inline_kb.row(types.InlineKeyboardButton(text=f'{emojize(" :moneybag:", use_aliases=True)}Бухгалтерія',
+                                                 callback_data=f'accounting'))
+
+        # TODO: add manager statistics items
 
         inline_kb.row(types.InlineKeyboardButton(text=f'{emojize(" :back:", use_aliases=True)}Повернутись до меню',
                                                  callback_data='main_menu'))
@@ -2091,7 +2177,6 @@ def show_main_menu(message, user_role, edit=False):
             get_manager_stat = types.InlineKeyboardButton(
                 text=f'{emojize(" :bar_chart:", use_aliases=True)}Отримати статистику',
                 callback_data='get_manager_statistics')
-            # TODO: add manager statistics
 
             update = types.InlineKeyboardButton(text=f'{emojize(" :repeat:", use_aliases=True)}Оновити статус',
                                                 callback_data='main_menu')
@@ -2161,7 +2246,6 @@ def show_main_menu(message, user_role, edit=False):
             update = types.InlineKeyboardButton(text=f'{emojize(" :repeat:", use_aliases=True)}Оновити статус', callback_data='main_menu')
             stat = types.InlineKeyboardButton(text=f'{emojize(":bar_chart:", use_aliases=True)}Статистика', callback_data=f'waiter_statistics')
             shift_management_for_supervisor = types.InlineKeyboardButton(text=f'{emojize(" :wrench:", use_aliases=True)}Управління зміною', callback_data=f'manage_shift_for_supervisor_shift:{current_shift_id}')
-            # TODO: add shift archive to statistics
 
             if model.get_available_shift_for_staff(message.chat.id, qualification_id).__len__() > 0:
                 inline_kb.row(check_available_shifts)
