@@ -6,7 +6,10 @@ from datetime import timedelta
 from emoji import emojize
 import geopy.distance
 import math
+import os
 import sys
+import xlsxwriter as xlw
+
 
 from setuptools.command.setopt import setopt
 
@@ -1595,6 +1598,110 @@ class Model:
                 i += 1
 
             return res
+        except Exception as err:
+            method_name = sys._getframe().f_code.co_name
+
+            self.logger.write_to_log('exception', 'model')
+            self.logger.write_to_err_log(f'exception in method {method_name} - {err}', 'model')
+
+    def generate_waiter_financial_report_excel_file(self, staff_info, period, month_report, path):
+        """
+        Creates excel worksheet with financial report for waiter
+        :param staff_info: list with staff infomation
+        :param period: string with period of report formated 'month-year'
+        :param month_report: list woth report
+        :param path: path to file, needed to create
+        :return: None
+        """
+        try:
+            workbook = xlw.Workbook(path)
+            worksheet = workbook.add_worksheet()
+
+            file_header_format = workbook.add_format({
+                'font_size':20,
+                'align': 'center',
+                'valign': 'vcenter'
+            })
+            table_header_format = workbook.add_format({
+                'bold': 1,
+                'border': 1,
+                'align': 'center',
+                'valign': 'vcenter',
+                'font_size': 12,
+                'fg_color': '#C0C0C0'})
+            cell_format = workbook.add_format({
+                'font_size': 12,
+                'align':'center',
+                'valign':'vcenter'
+            })
+            sum_format = workbook.add_format({
+                'font_size': 12,
+                'align': 'center',
+                'valign': 'vcenter',
+                'fg_color': '#99FF99'
+            })
+
+            worksheet.set_column('A:A', 10)
+            worksheet.set_column('B:B', 30)
+            worksheet.set_column('C:C', 20)
+            worksheet.set_column('D:D', 20)
+            worksheet.set_column('E:E', 20)
+            worksheet.set_column('F:F', 10)
+            worksheet.set_column('G:G', 15)
+
+            worksheet.merge_range('A1:G2', f'{staff_info[3]} {staff_info[1]} {period}', file_header_format)
+
+            row = 4
+            column = 0
+
+            for line in month_report:
+                for item in line:
+                    if row == 4:
+                        worksheet.write(row, column, item.__str__(), table_header_format)
+                    else:
+                        if month_report.index(line) == len(month_report)-1 and line.index(item) == len(line)-1:
+                            worksheet.write(row, column, item.__str__(), sum_format)
+                        else:
+                            worksheet.write(row, column, item.__str__(), cell_format)
+                    column += 1
+                row += 1
+                column = 0
+
+            workbook.close()
+        except Exception as err:
+            method_name = sys._getframe().f_code.co_name
+
+            self.logger.write_to_log('exception', 'model')
+            self.logger.write_to_err_log(f'exception in method {method_name} - {err}', 'model')
+
+    def get_waiter_excel_financial_report_path(self, staff_id, period):
+        """
+        Returns path of excel file which contains month report
+        :param staff_id: staff telegram id
+        :param period: string with period, formated 'month-year'
+        :return: string with excel workshhet path
+        """
+        try:
+            headers = ('№п/п', 'Назва події', 'Check-in', 'Check_out', 'Час на зміні', 'Рейтинг', 'Нараховано')
+            path = f'{config.WORKING_DIR}/user_reports/{staff_id}_{period}.xlsx'
+
+            if os.path.isfile(path):
+                os.remove(path)
+
+            staff = self.get_staff_by_id(staff_id)
+            report = self.get_staff_financial_report_for_month(staff_id, period)
+            report_with_headers = [headers]
+            sum_for_month = sum([x[6] for x in report])
+
+            for rep in report:
+                report_with_headers.append(rep)
+
+            report_with_headers.append(('','','','','','',sum_for_month))
+
+            self.generate_waiter_financial_report_excel_file(staff, period, report_with_headers, path)
+            self.logger.write_to_log('excel file with month report generated', 'model')
+
+            return path
         except Exception as err:
             method_name = sys._getframe().f_code.co_name
 
