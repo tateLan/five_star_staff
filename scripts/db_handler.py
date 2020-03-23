@@ -1153,3 +1153,36 @@ class DbHandler:
 
         return self.curs.fetchall()
 
+    @check_session_time_alive
+    def get_ended_shift_registrations(self):
+        q = f'select * from shift_registration where check_out is not null ' \
+            f'order by check_out desc;'
+
+        self.curs.execute(q)
+
+        return self.curs.fetchall()
+
+    @check_session_time_alive
+    def get_ended_shift_ids_in_period(self, *args):
+        date_from, date_to = args[0]
+
+        q = f"select shift_id from shift_registration " \
+            f"where registered=1 and check_out is not null and " \
+            f"check_in >='{date_from}' and check_in <= '{date_to}' " \
+            f"group by shift_id;"
+
+        self.curs.execute(q)
+
+        return self.curs.fetchall()
+
+    @check_session_time_alive
+    def get_ended_registrations_by_shift_id(self, *args):
+        shift_id = args[0][0]
+
+        q = f'select id, staff_id, date_registered, check_in, check_out, rating, payment ' \
+            f'from shift_registration ' \
+            f'where shift_id={shift_id};'
+
+        self.curs.execute(q)
+
+        return self.curs.fetchall()

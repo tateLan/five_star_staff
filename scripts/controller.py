@@ -2072,7 +2072,7 @@ def get_manager_statistics_handler(call):
         inline_kb.row(types.InlineKeyboardButton(text=f'{emojize(" :lock:", use_aliases=True)}Архів змін',
                                                  callback_data=f'shift_archive_page:0'))
         inline_kb.row(types.InlineKeyboardButton(text=f'{emojize(" :moneybag:", use_aliases=True)}Бухгалтерія',
-                                                 callback_data=f'accounting'))
+                                                 callback_data=f'manager_accounting'))
 
         # TODO: add manager statistics items
 
@@ -2091,25 +2091,111 @@ def get_manager_statistics_handler(call):
         logger.write_to_err_log(f'exception in method {method_name} - {err}', 'controller')
 
 
-def check_shifts_with_supervisor(shifts):
-    """
-    Counts number of shifts with supervisors and without em
-    :param shifts: list of upcoming shifth
-    :return: number of shifth with and without supervisor
-    """
+@bot.callback_query_handler(func=lambda call: call.data == 'manager_accounting')
+def manager_accounting_handler(call):
     try:
-        with_super = 0
-        without_super = 0
+        msg = 'Виберіть категорію, в якій хотіли б отримати  статистику:'
+        inline_kb = types.InlineKeyboardMarkup()
 
-        for _,_,_,_,_,sup in shifts:
-            if sup is not None and sup != '':
-                with_super += 1
-            if sup is None or sup == '':
-                without_super +=1
+        inline_kb.row(types.InlineKeyboardButton(text=f'{emojize(" :calendar:", use_aliases=True)}Звіт за місяць',
+                                                 callback_data=f'manager_pick_period_for_financial_report_page:0'))
+        inline_kb.row(types.InlineKeyboardButton(
+                        text=f'{emojize(":bust_in_silhouette:", use_aliases=True)}Звіт по працівнику',
+                        callback_data=f'manager_pick_waiter_for_financial_report_page:0'))
 
-        return with_super, without_super
+        inline_kb.row(types.InlineKeyboardButton(text=f'{emojize(" :back:", use_aliases=True)}Повернутись до меню',
+                                                 callback_data='main_menu'))
+
+        bot.edit_message_text(chat_id=call.message.chat.id,
+                              message_id=call.message.message_id,
+                              text=msg,
+                              parse_mode='Markdown',
+                              reply_markup=inline_kb)
     except Exception as err:
-        method_name = sys._getframe( ).f_code.co_name
+        method_name = sys._getframe().f_code.co_name
+
+        logger.write_to_log('exception', 'controller')
+        logger.write_to_err_log(f'exception in method {method_name} - {err}', 'controller')
+
+
+@bot.callback_query_handler(func=lambda call: call.data.split('manager_pick_period_for_financial_report_page:').__len__() > 1)
+def manager_pick_period_for_financial_report_handler(call):
+    try:
+        page = int(call.data.split('manager_pick_period_for_financial_report_page:')[1])
+        msg = 'Виберіть період, за який хотіли б отримати звіт:'
+        inline_kb = types.InlineKeyboardMarkup()
+
+        number_of_pages, month_list = model.get_month_all_staff_worked(page)
+
+        for month in month_list:
+            inline_kb.row(types.InlineKeyboardButton(
+                text=f'{month_names[month[0]]} {month[1]}',
+                callback_data=f'manager_money_report_period:{month[0]}-{month[1]}_page:{page}')
+            )
+
+        next_page_indi = False
+        prev_page_indi = False
+
+        next_page = types.InlineKeyboardButton(text=f'{emojize(" :arrow_forward:", use_aliases=True)}',
+                                               callback_data=f'waiter_accounting_page:{page + 1}')
+        prev_page = types.InlineKeyboardButton(text=f'{emojize(" :arrow_backward:", use_aliases=True)}',
+                                               callback_data=f'waiter_accounting_page:{page - 1}')
+
+        if page + 1 == number_of_pages:
+            next_page_indi = False
+        else:
+            next_page_indi = True
+        if page == 0:
+            prev_page_indi = False
+        else:
+            prev_page_indi = True
+
+        if prev_page_indi and next_page_indi:
+            inline_kb.row(prev_page, next_page)
+        if prev_page_indi and not next_page_indi:
+            inline_kb.row(prev_page)
+        if not prev_page_indi and next_page_indi:
+            inline_kb.row(next_page)
+
+        inline_kb.row(types.InlineKeyboardButton(text=f'{emojize(" :back:", use_aliases=True)}Повернутись до меню',
+                                                 callback_data='main_menu'))
+
+        bot.edit_message_text(chat_id=call.message.chat.id,
+                              message_id=call.message.message_id,
+                              text=msg,
+                              parse_mode='Markdown',
+                              reply_markup=inline_kb)
+    except Exception as err:
+        method_name = sys._getframe().f_code.co_name
+
+        logger.write_to_log('exception', 'controller')
+        logger.write_to_err_log(f'exception in method {method_name} - {err}', 'controller')
+
+
+@bot.callback_query_handler(func=lambda call: call.data.split('manager_money_report_period:').__len__() > 1)
+def manager_money_report_period_handler(call):
+    try:
+        period = call.data.split('manager_money_report_period:')[1].split('_')[0]
+        page = call.data.split('_page:')[1]
+        period_str = f'{month_names[int(period.split("-")[0])]} {period.split("-")[1]}'
+
+        report = model.get_short_text_financial_report_for_month(period)
+
+        msg = f'Фінансовий звіт за період *{period_str}*:\n' \
+              f'{report}'
+
+        inline_kb = types.InlineKeyboardMarkup()
+
+        inline_kb.row(types.InlineKeyboardButton(text=f'{emojize(" :back:", use_aliases=True)}Назад',
+                                                 callback_data=f'manager_pick_period_for_financial_report_page:{page}'))
+
+        bot.edit_message_text(chat_id=call.message.chat.id,
+                              message_id=call.message.message_id,
+                              text=msg,
+                              parse_mode='Markdown',
+                              reply_markup=inline_kb)
+    except Exception as err:
+        method_name = sys._getframe().f_code.co_name
 
         logger.write_to_log('exception', 'controller')
         logger.write_to_err_log(f'exception in method {method_name} - {err}', 'controller')
@@ -2143,6 +2229,30 @@ def get_event_title(message):
             bot.send_message(chat_id=message.chat.id,
                              text=msg,
                              reply_markup=inline_kb)
+    except Exception as err:
+        method_name = sys._getframe( ).f_code.co_name
+
+        logger.write_to_log('exception', 'controller')
+        logger.write_to_err_log(f'exception in method {method_name} - {err}', 'controller')
+
+
+def check_shifts_with_supervisor(shifts):
+    """
+    Counts number of shifts with supervisors and without em
+    :param shifts: list of upcoming shifth
+    :return: number of shifth with and without supervisor
+    """
+    try:
+        with_super = 0
+        without_super = 0
+
+        for _,_,_,_,_,sup in shifts:
+            if sup is not None and sup != '':
+                with_super += 1
+            if sup is None or sup == '':
+                without_super +=1
+
+        return with_super, without_super
     except Exception as err:
         method_name = sys._getframe( ).f_code.co_name
 
@@ -2320,6 +2430,9 @@ def show_main_menu(message, user_role, edit=False):
                 text=f'{emojize(" :bar_chart:", use_aliases=True)}Отримати статистику',
                 callback_data='get_manager_statistics')
 
+            finances = types.InlineKeyboardButton(text=f'{emojize(" :bank:", use_aliases=True)}Фінанси',
+                                                  callback_data=f'manage_finances')
+
             update = types.InlineKeyboardButton(text=f'{emojize(" :repeat:", use_aliases=True)}Оновити статус',
                                                 callback_data='main_menu')
             if staff_pending_requests > 0 and event_pending_requests > 0:
@@ -2341,6 +2454,7 @@ def show_main_menu(message, user_role, edit=False):
             elif 0 < upcoming_shifts.__len__() and (without_supervisor + with_supervisor) == upcoming_shifts.__len__():
                 inline_kb.row(set_main_on_shift, change_main_on_shift)
             inline_kb.row(get_manager_stat)
+            # inline_kb.row(finances)
             inline_kb.row(update)
 
             logger.write_to_log('displayed manager menu', message.chat.id)

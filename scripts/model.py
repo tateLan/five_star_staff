@@ -9,8 +9,6 @@ import math
 import os
 import sys
 import xlsxwriter as xlw
-
-
 from setuptools.command.setopt import setopt
 
 
@@ -1682,7 +1680,7 @@ class Model:
         :return: string with excel workshhet path
         """
         try:
-            headers = ('№п/п', 'Назва події', 'Check-in', 'Check_out', 'Час на зміні', 'Рейтинг', 'Нараховано')
+            headers = ('№п/п', 'Назва події', 'Check-in', 'Check-out', 'Час на зміні', 'Рейтинг', 'Нараховано')
             path = f'{config.WORKING_DIR}/user_reports/{staff_id}_{period}.xlsx'
 
             if os.path.isfile(path):
@@ -1702,6 +1700,113 @@ class Model:
             self.logger.write_to_log('excel file with month report generated', 'model')
 
             return path
+        except Exception as err:
+            method_name = sys._getframe().f_code.co_name
+
+            self.logger.write_to_log('exception', 'model')
+            self.logger.write_to_err_log(f'exception in method {method_name} - {err}', 'model')
+
+    def get_month_all_staff_worked(self, page):
+        """
+        Generates list of months when any staff worked
+        :param page: page of results
+        :return: set, consists of (overall number of pages, list of periods)
+        """
+        try:
+             registrations = self.db_handler.get_ended_shift_registrations()
+
+             month_list = []
+
+             for reg in registrations:
+                 if (reg[5].month, reg[5].year) not in month_list:
+                     month_list.append((reg[5].month, reg[5].year))
+
+             size = config.STAT_ITEMS_ON_ONE_PAGE
+             res = month_list[page * size: (page * size) + size]
+
+             self.logger.write_to_log('got list of month all staff worked', 'model')
+
+             return math.ceil(len(month_list) / size), res
+        except Exception as err:
+             method_name = sys._getframe().f_code.co_name
+
+             self.logger.write_to_log('exception', 'model')
+             self.logger.write_to_err_log(f'exception in method {method_name} - {err}', 'model')
+
+    def get_overall_financial_report_for_month(self, period):
+        """
+        Gets list of sets, with report about month
+        :param period: string with period, formated like 'month-year'
+        :return: list of sets, which formated like (id of shift, list with shift registrations to that shift)
+        """
+        try:
+            month = int(period.split('-')[0])
+            year = int(period.split('-')[1])
+            start_date = datetime(year, month, 1)
+            end_date = datetime(year, month, calendar.monthrange(year, month)[1])
+
+            res = []
+
+            worked_shifts = [x[0] for x in self.db_handler.get_ended_shift_ids_in_period(start_date, end_date)]   # to unpack sets, cuz they're formated like (value,)
+
+            for shift in worked_shifts:
+                res.append((shift, self.db_handler.get_ended_registrations_by_shift_id(shift)))
+
+            self.logger.write_to_log(f'overall financial report for period {period} get', 'model')
+
+            return res
+        except Exception as err:
+            method_name = sys._getframe().f_code.co_name
+
+            self.logger.write_to_log('exception', 'model')
+            self.logger.write_to_err_log(f'exception in method {method_name} - {err}', 'model')
+
+    def get_shift_fin_report(self, shift):
+        """
+        Generates short information about shift for manager financial report
+        :param shift: shift id
+        :return: string with short shift report
+        """
+        try:
+            shift_info = shift[1]
+            sum_to_pay = 0
+            event_info = self.get_shift_extended_info_by_id(shift[0])
+
+            for sh_reg in shift_info:
+                sum_to_pay += float(sh_reg[6])
+
+            msg = f'назва події: {event_info[6]}\n' \
+                  f'id зміни: {str(shift[0])}\n' \
+                  f'{emojize(" :busts_in_silhouette:", use_aliases=True)}працівників на зміні: {len(shift_info)}\n' \
+                  f'{emojize(" :heavy_plus_sign:", use_aliases=True)}ціна події: {event_info[14]}\n' \
+                  f'{emojize(" :heavy_minus_sign:", use_aliases=True)}загальна сума виплат: {sum_to_pay}\n' \
+                  f'{emojize(" :moneybag:", use_aliases=True)}залишок після виплати зп: *{float(event_info[14]) - sum_to_pay}*\n'
+
+            return msg
+        except Exception as err:
+            method_name = sys._getframe().f_code.co_name
+
+            self.logger.write_to_log('exception', 'model')
+            self.logger.write_to_err_log(f'exception in method {method_name} - {err}', 'model')
+
+    def get_short_text_financial_report_for_month(self, period):
+        """
+        Generates short text financial report for month
+        :param period: period of report
+        :return: string with report
+        """
+        try:
+            report = self.get_overall_financial_report_for_month(period)
+
+            res = f'{"-" * 20}\n' \
+                  f'Відпрацьовано змін:{len(report)}\n'
+
+            for item in report:
+                res += f'{"-" * 20}\n'
+                res += self.get_shift_fin_report(item)
+                res += f'{"-" * 20}\n'
+
+            return res
         except Exception as err:
             method_name = sys._getframe().f_code.co_name
 
