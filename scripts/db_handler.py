@@ -1186,3 +1186,18 @@ class DbHandler:
         self.curs.execute(q)
 
         return self.curs.fetchall()
+
+    @check_session_time_alive
+    def get_staff_ever_worked(self):
+        q = f'select staff_id, last_name, first_name, middle_name, rl.name_role, ql.degree ' \
+            f'from ((shift_registration sh left join staff st on st.id = sh.staff_id) ' \
+            f'left join roles rl on st.staff_role = rl.id_role) ' \
+            f'left join qualification ql on ql.id = st.qualification ' \
+            f'where check_out is not null ' \
+            f'group by staff_id'
+
+        self.curs.execute(q)
+
+        return self.curs.fetchall()
+
+

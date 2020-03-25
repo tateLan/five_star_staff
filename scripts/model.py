@@ -2017,3 +2017,24 @@ class Model:
 
             self.logger.write_to_log('exception', 'model')
             self.logger.write_to_err_log(f'exception in method {method_name} - {err}', 'model')
+
+    def get_staff_ever_worked(self, page):
+        """
+        Returns list of staff ever worked(have ended shift)
+        :param page: int number of page
+        :return: list of staff
+        """
+        try:
+            self.logger.write_to_log('staff ever worked requested', 'model')
+
+            staff_list = self.db_handler.get_staff_ever_worked()
+            size = config.STAT_ITEMS_ON_ONE_PAGE
+
+            res = staff_list[page * size: (page * size) + size]
+
+            return math.ceil(len(staff_list) / size), res
+        except Exception as err:
+            method_name = sys._getframe().f_code.co_name
+
+            self.logger.write_to_log('exception', 'model')
+            self.logger.write_to_err_log(f'exception in method {method_name} - {err}', 'model')

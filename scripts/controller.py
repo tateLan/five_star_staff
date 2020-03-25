@@ -2227,6 +2227,193 @@ def get_manager_excel_financial_report_period_handler(call):
         logger.write_to_err_log(f'exception in method {method_name} - {err}', 'controller')
 
 
+@bot.callback_query_handler(func=lambda call: call.data.split('manager_pick_waiter_for_financial_report_page:').__len__() > 1)
+def manager_pick_waiter_for_financial_report_page_handler(call):
+    try:
+        page = int(call.data.split('manager_pick_waiter_for_financial_report_page:')[1])
+
+        number_of_pages, staff_list = model.get_staff_ever_worked(page)
+
+        msg = f'Виберіть працівника, по якому хочете отримати статистику:\n' \
+              f'{emojize(" :page_facing_up:", use_aliases=True)}Сторінка {page+1}/{number_of_pages}'
+        inline_kb = types.InlineKeyboardMarkup()
+
+        for staff in staff_list:
+            inline_kb.row(types.InlineKeyboardButton(text=f'{staff[1]} {staff[2]} {staff[3]} {staff[4]} {staff[5]}',
+                                                     callback_data=f'manager_get_months_staff_worked_id:{staff[0]}_page:{page}'))
+
+        next_page_indi = False
+        prev_page_indi = False
+
+        next_page = types.InlineKeyboardButton(text=f'{emojize(" :arrow_forward:", use_aliases=True)}',
+                                               callback_data=f'manager_pick_waiter_for_financial_report_page:{page + 1}')
+        prev_page = types.InlineKeyboardButton(text=f'{emojize(" :arrow_backward:", use_aliases=True)}',
+                                               callback_data=f'manager_pick_waiter_for_financial_report_page:{page - 1}')
+
+        if page + 1 == number_of_pages:
+            next_page_indi = False
+        else:
+            next_page_indi = True
+        if page == 0:
+            prev_page_indi = False
+        else:
+            prev_page_indi = True
+
+        if prev_page_indi and next_page_indi:
+            inline_kb.row(prev_page, next_page)
+        if prev_page_indi and not next_page_indi:
+            inline_kb.row(prev_page)
+        if not prev_page_indi and next_page_indi:
+            inline_kb.row(next_page)
+
+        inline_kb.row(types.InlineKeyboardButton(text=f'{emojize(" :back:", use_aliases=True)}Повернутись до меню',
+                                                 callback_data=f'main_menu'))
+
+        bot.edit_message_text(chat_id=call.message.chat.id,
+                              message_id=call.message.message_id,
+                              text=msg,
+                              parse_mode='Markdown',
+                              reply_markup=inline_kb)
+    except Exception as err:
+        method_name = sys._getframe().f_code.co_name
+
+        logger.write_to_log('exception', 'controller')
+        logger.write_to_err_log(f'exception in method {method_name} - {err}', 'controller')
+
+
+@bot.callback_query_handler(func=lambda call: call.data.split('manager_get_months_staff_worked_id:').__len__() > 1)
+def manager_get_months_staff_worked_id_handler(call):
+    try:
+        staff_id = call.data.split('manager_get_months_staff_worked_id:')[1].split('_')[0]
+        page = int(call.data.split('_page:')[1])
+
+        number_of_pages, month_list = model.get_month_staff_worked(staff_id, page)
+
+        msg = f'Виберіть період, за який хочете отримати статистику:' \
+              f'{emojize(" :page_facing_up:", use_aliases=True)}Сторінка {page+1}/{number_of_pages}'
+        inline_kb = types.InlineKeyboardMarkup()
+
+        for month in month_list:
+            inline_kb.row(types.InlineKeyboardButton(
+                text=f'{month_names[month[0]]} {month[1]}',
+                callback_data=f'manager_report_staff_id:{staff_id}_period:{month[0]}-{month[1]}_page:{page}')
+            )
+
+        next_page_indi = False
+        prev_page_indi = False
+
+        next_page = types.InlineKeyboardButton(text=f'{emojize(" :arrow_forward:", use_aliases=True)}',
+                                               callback_data=f'manager_get_months_staff_worked_id:{staff_id}_page:{page + 1}')
+        prev_page = types.InlineKeyboardButton(text=f'{emojize(" :arrow_backward:", use_aliases=True)}',
+                                               callback_data=f'manager_get_months_staff_worked_id:{staff_id}_page:{page - 1}')
+
+        if page + 1 == number_of_pages:
+            next_page_indi = False
+        else:
+            next_page_indi = True
+        if page == 0:
+            prev_page_indi = False
+        else:
+            prev_page_indi = True
+
+        if prev_page_indi and next_page_indi:
+            inline_kb.row(prev_page, next_page)
+        if prev_page_indi and not next_page_indi:
+            inline_kb.row(prev_page)
+        if not prev_page_indi and next_page_indi:
+            inline_kb.row(next_page)
+
+        inline_kb.row(types.InlineKeyboardButton(text=f'{emojize(" :back:", use_aliases=True)}Повернутись до меню',
+                                                 callback_data=f'manager_pick_waiter_for_financial_report_page:{page}'))
+
+        bot.edit_message_text(chat_id=call.message.chat.id,
+                              message_id=call.message.message_id,
+                              text=msg,
+                              parse_mode='Markdown',
+                              reply_markup=inline_kb)
+    except Exception as err:
+        method_name = sys._getframe().f_code.co_name
+
+        logger.write_to_log('exception', 'controller')
+        logger.write_to_err_log(f'exception in method {method_name} - {err}', 'controller')
+
+
+@bot.callback_query_handler(func=lambda call: call.data.split('manager_report_staff_id:').__len__() > 1)
+def manager_report_staff_id_handler(call):
+    try:
+        staff_id = call.data.split('manager_report_staff_id:')[1].split('_')[0]
+        period = call.data.split('_period:')[1].split('_')[0]
+        page = int(call.data.split('_page:')[1])
+
+        month_sum = 0
+        overall_worked = timedelta()
+
+        report = model.get_staff_financial_report_for_month(staff_id, period)
+
+        period_str = f'{month_names[int(period.split("-")[0])]} {period.split("-")[1]}'
+        msg = f'Фінансовий звіт за *{period_str}*\n' \
+              f'Відпрацьованих змін: {len(report)}\n' \
+              f'{"-" * 20}\n'
+
+        for item in report:
+            msg += f'Назва події: *{item[1]}*\n' \
+                   f'{emojize(" :clock4:", use_aliases=True)}Check-in: {item[2]}\n' \
+                   f'{emojize(" :clock430:", use_aliases=True)}Check-out: {item[3]}\n' \
+                   f'{emojize(" :hourglass:", use_aliases=True)}Час на зміні: {item[4]}\n' \
+                   f'{emojize(" :chart_with_upwards_trend:", use_aliases=True)}Рейтинг: {str(item[5]) if item[5] is not None else "Інформація відсутня"}\n' \
+                   f'{emojize(" :moneybag:", use_aliases=True)}Нараховано: {str(item[6]) if item[6] is not None else "Інформація відсутня"}\n' \
+                   f'{"-" * 20}\n'
+            overall_worked += item[4]
+            if item[6] is not None:
+                month_sum += float(item[6])
+        msg += f'{emojize(" :hourglass:", use_aliases=True)}Відпрацьовано за місяць: *{overall_worked}*\n'
+        msg += f'{emojize(" :moneybag:", use_aliases=True)}Нараховано за місяць: *{month_sum}*'
+
+        inline_kb = types.InlineKeyboardMarkup()
+
+        inline_kb.row( types.InlineKeyboardButton(text=f'{emojize(" :arrow_down:", use_aliases=True)}Завантажити файл(excel)',
+                                       callback_data=f'get_manager_stf_excel_fin_report_id:{staff_id}_period:{period}'))
+
+        inline_kb.row(types.InlineKeyboardButton(text=f'{emojize(" :back:", use_aliases=True)}Назад',
+                                                 callback_data=f'manager_get_months_staff_worked_id:{staff_id}_page:{page}'))
+
+        bot.edit_message_text(chat_id=call.message.chat.id,
+                              message_id=call.message.message_id,
+                              text=msg,
+                              parse_mode='Markdown',
+                              reply_markup=inline_kb)
+    except Exception as err:
+        method_name = sys._getframe().f_code.co_name
+
+        logger.write_to_log('exception', 'controller')
+        logger.write_to_err_log(f'exception in method {method_name} - {err}', 'controller')
+
+
+@bot.callback_query_handler(func=lambda call: call.data.split('get_manager_stf_excel_fin_report_id:').__len__() > 1)
+def get_manager_waiter_excel_financial_report_id_handler(call):
+    try:
+        staff_id = call.data.split('get_manager_stf_excel_fin_report_id:')[1].split('_')[0]
+        period = call.data.split('_period:')[1]
+
+        bot.edit_message_text(chat_id=call.message.chat.id,
+                              message_id=call.message.message_id,
+                              text='Ваш файл готується до відправлення:)')
+
+        file_path = model.get_waiter_excel_financial_report_path(staff_id, period)
+
+        report = open(file_path, 'rb')
+        bot.send_document(call.message.chat.id, report)
+        report.close()
+
+        show_main_menu(call.message)
+
+    except Exception as err:
+        method_name = sys._getframe().f_code.co_name
+
+        logger.write_to_log('exception', 'controller')
+        logger.write_to_err_log(f'exception in method {method_name} - {err}', 'controller')
+
+
 def get_event_title(message):
     try:
         event_id = title_update_queue.pop(message.chat.id)
