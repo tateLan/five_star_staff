@@ -1733,7 +1733,7 @@ class Model:
              self.logger.write_to_log('exception', 'model')
              self.logger.write_to_err_log(f'exception in method {method_name} - {err}', 'model')
 
-    def get_overall_financial_report_for_month(self, period):
+    def get_general_financial_report_for_month(self, period):
         """
         Gets list of sets, with report about month
         :param period: string with period, formated like 'month-year'
@@ -1761,7 +1761,7 @@ class Model:
             self.logger.write_to_log('exception', 'model')
             self.logger.write_to_err_log(f'exception in method {method_name} - {err}', 'model')
 
-    def get_shift_fin_report(self, shift):
+    def get_shift_text_fin_report(self, shift):
         """
         Generates short information about shift for manager financial report
         :param shift: shift id
@@ -1782,7 +1782,7 @@ class Model:
                   f'{emojize(" :heavy_minus_sign:", use_aliases=True)}загальна сума виплат: {sum_to_pay}\n' \
                   f'{emojize(" :moneybag:", use_aliases=True)}залишок після виплати зп: *{float(event_info[14]) - sum_to_pay}*\n'
 
-            return msg
+            return msg, sum_to_pay, event_info[14]
         except Exception as err:
             method_name = sys._getframe().f_code.co_name
 
@@ -1796,17 +1796,222 @@ class Model:
         :return: string with report
         """
         try:
-            report = self.get_overall_financial_report_for_month(period)
+            report = self.get_general_financial_report_for_month(period)
+
+            overall_income = 0
+            overall_outcome = 0
 
             res = f'{"-" * 20}\n' \
                   f'Відпрацьовано змін:{len(report)}\n'
+            res += f'{"-" * 20}\n'
 
             for item in report:
-                res += f'{"-" * 20}\n'
-                res += self.get_shift_fin_report(item)
+                shift_report, outcome, income = self.get_shift_text_fin_report(item)
+
+                overall_income += float(income)
+                overall_outcome += float(outcome)
+
+                res += shift_report
                 res += f'{"-" * 20}\n'
 
+            res += f'{emojize(" :heavy_plus_sign:", use_aliases=True)}Загальний дохід: {overall_income}\n' \
+                   f'{emojize(" :heavy_minus_sign:", use_aliases=True)}Загальні витрати: {overall_outcome}\n' \
+                   f'{emojize(" :moneybag:", use_aliases=True)}Прибуток: *{overall_income - overall_outcome}*\n'
             return res
+        except Exception as err:
+            method_name = sys._getframe().f_code.co_name
+
+            self.logger.write_to_log('exception', 'model')
+            self.logger.write_to_err_log(f'exception in method {method_name} - {err}', 'model')
+
+    def get_full_month_financial_report(self, period):
+        """
+        Generates all needed data about shift, to write em to excel file with report
+        :param period: string with period
+        :return: list of sets about shift (dictionary with shift data,
+                                           list with headers about staff,
+                                           list with staff shift registration data
+                                           set with overall outcome, profit)
+        """
+        try:
+            report = self.get_general_financial_report_for_month(period)
+            res = []
+
+            for shift in report:
+                shift_ext = self.get_shift_extended_info_by_id(shift[0])
+                shift_info = {'id:': shift[0],
+                              'назва:': shift_ext[6],
+                              'Дата початку:': shift_ext[8],
+                              'Дата закінчення: ': shift_ext[9],
+                              'Ціна:': shift_ext[14],
+                              'Клас: ': [x[1] for x in self.get_event_types_list() if x[0] == shift_ext[11]][0],
+                              'Тип: ': [x[1] for x in self.get_event_classes_list() if x[0] == shift_ext[12]][0]}
+                staff_headers = ['Прізвище', 'Ім\'я', 'По-батькові', 'Посада', 'Кваліфікація',
+                                 'Check-in', 'Check-out', 'На зміні', 'Рейтинг', 'Нараховано']
+                staff_info = []
+                overall_outcome = 0
+
+                for sh_reg in shift[1]:
+                    staff_ext = self.get_staff_by_id(sh_reg[1])
+                    temp_staff = [staff_ext[3], staff_ext[1], staff_ext[2],
+                                  self.get_role_by_id(staff_ext[4])[1],
+                                  self.get_qualification_by_id(staff_ext[5])[1],
+                                  sh_reg[3], sh_reg[4], (sh_reg[4] - sh_reg[3]), sh_reg[5],
+                                  sh_reg[6]]
+
+                    overall_outcome += float(sh_reg[6])
+                    staff_info.append(temp_staff)
+
+                res.append((shift_info, staff_headers, staff_info, (overall_outcome, float(shift_ext[14]) - overall_outcome)))
+            return res
+        except Exception as err:
+            method_name = sys._getframe().f_code.co_name
+
+            self.logger.write_to_log('exception', 'model')
+            self.logger.write_to_err_log(f'exception in method {method_name} - {err}', 'model')
+
+    def generate_detailed_manager_month_fin_report_excel(self, report, path, period):
+        try:
+            workbook = xlw.Workbook(path)
+            worksheet = workbook.add_worksheet()
+
+            file_header_format = workbook.add_format({
+                'bold': 1,
+                'font_size': 20,
+                'align': 'center',
+                'valign': 'vcenter'
+            })
+            shift_header_format = workbook.add_format({
+                'align': 'center',
+                'valign': 'vcenter',
+                'font_size': 18,
+                'fg_color': '#f6f9d4'
+            })
+            staff_header_format = workbook.add_format({
+                'align': 'center',
+                'valign': 'vcenter',
+                'font_size': 18,
+                'fg_color': '#e0c2cd'
+            })
+            table_header_format = workbook.add_format({
+                'bold': 1,
+                'border': 1,
+                'align': 'center',
+                'valign': 'vcenter',
+                'font_size': 12,
+                'fg_color': '#C0C0C0'})
+            cell_format = workbook.add_format({
+                'font_size': 12,
+                'align': 'center',
+                'valign': 'vcenter'
+            })
+            pre_sum_to_pay_format = workbook.add_format({
+                'top': 1,
+                'align': 'right'
+            })
+            sum_to_pay_format = workbook.add_format({
+                'font_size': 12,
+                'align': 'center',
+                'valign': 'vcenter',
+                'top': 1,
+                'fg_color': '#dde8cb'
+            })
+            pre_sum_of_profit_format = workbook.add_format({
+                'align': 'right'
+            })
+            sum_of_profit_format = workbook.add_format({
+                'font_size': 12,
+                'align': 'center',
+                'valign': 'vcenter',
+                'fg_color': '#afd095'
+            })
+
+            worksheet.set_column('A:A', 20)
+            worksheet.set_column('B:B', 20)
+            worksheet.set_column('C:C', 20)
+            worksheet.set_column('D:D', 20)
+            worksheet.set_column('E:E', 20)
+            worksheet.set_column('F:F', 20)
+            worksheet.set_column('G:G', 20)
+            worksheet.set_column('H:H', 20)
+            worksheet.set_column('I:I', 20)
+            worksheet.set_column('J:J', 20)
+
+            worksheet.merge_range('A1:J3', f'Звіт за {period}', file_header_format)
+
+            row = 7
+            col = 0
+            overall_outcome = 0
+            overall_income = 0
+
+            for shift in report:
+                shift_info = list(shift[0].items())
+                staff_headers = shift[1]
+                staff_info = shift[2]
+                final_numbers = shift[3]
+
+                worksheet.merge_range(f'A{row}:J{row}', f'Зміна {shift_info[0][0]} {shift_info[0][1]}'
+                                                        f' {shift_info[1][0]} {shift_info[1][1]}', shift_header_format)
+
+                row += 1
+                for i in range(2, len(shift_info)):
+                    worksheet.write(row, 0, str(shift_info[i][0]))
+                    worksheet.write(row, 1, str(shift_info[i][1]))
+                    row += 1
+
+                row += 2
+                worksheet.merge_range(f'A{row}:J{row}', f'Працівники:', staff_header_format)
+
+                for i in range(len(staff_headers)):
+                    worksheet.write(row, i, str(staff_headers[i]), table_header_format)
+                row += 1
+
+                for worker in staff_info:
+                    for i in range(len(worker)):
+                        worksheet.write(row, i, str(worker[i]), cell_format)
+                    row += 1
+
+                row += 1
+                worksheet.merge_range(f'A{row}:I{row}', 'Разом до виплати:', pre_sum_to_pay_format)
+                worksheet.write(row-1, 9, str(final_numbers[0]), sum_to_pay_format)
+                row += 1
+                worksheet.merge_range(f'A{row}:I{row}', 'Прибуток:', pre_sum_of_profit_format)
+                worksheet.write(row-1, 9, str(final_numbers[1]), sum_of_profit_format)
+
+                overall_outcome += float(final_numbers[0])
+                overall_income += float(final_numbers[1])
+
+                row += 3
+            worksheet.write(row, 0, 'Загальні витрати: ')
+            worksheet.write(row, 1, overall_outcome, sum_to_pay_format)
+
+            worksheet.write(row+1, 0, 'Загальний дохід: ')
+            worksheet.write(row+1, 1, overall_income, sum_of_profit_format)
+
+
+
+
+            workbook.close()
+        except Exception as err:
+            method_name = sys._getframe().f_code.co_name
+
+            self.logger.write_to_log('exception', 'model')
+            self.logger.write_to_err_log(f'exception in method {method_name} - {err}', 'model')
+
+    def get_manager_excel_financial_report_path(self, period):
+        try:
+            path = f'{config.WORKING_DIR}user_reports/detailed_report_{period}.xlsx'
+
+            if os.path.isfile(path):
+                os.remove(path)
+
+            report = self.get_full_month_financial_report(period)
+
+            self.generate_detailed_manager_month_fin_report_excel(report, path, period)
+
+            self.logger.write_to_log('detailed month fin report in excel generated', 'model')
+
+            return path
         except Exception as err:
             method_name = sys._getframe().f_code.co_name
 

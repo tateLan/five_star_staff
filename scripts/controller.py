@@ -2054,7 +2054,6 @@ def get_waiter_excel_financial_report_period_handler(call):
         report.close()
 
         show_main_menu(call.message)
-
     except Exception as err:
         method_name = sys._getframe().f_code.co_name
 
@@ -2186,6 +2185,9 @@ def manager_money_report_period_handler(call):
 
         inline_kb = types.InlineKeyboardMarkup()
 
+        inline_kb.row(types.InlineKeyboardButton(text=f'{emojize(" :arrow_down:", use_aliases=True)}Завантажити детальний звіт(excel)',
+                                                 callback_data=f'get_manager_excel_financial_report_period:{period}_page:{page}'))
+
         inline_kb.row(types.InlineKeyboardButton(text=f'{emojize(" :back:", use_aliases=True)}Назад',
                                                  callback_data=f'manager_pick_period_for_financial_report_page:{page}'))
 
@@ -2194,6 +2196,30 @@ def manager_money_report_period_handler(call):
                               text=msg,
                               parse_mode='Markdown',
                               reply_markup=inline_kb)
+    except Exception as err:
+        method_name = sys._getframe().f_code.co_name
+
+        logger.write_to_log('exception', 'controller')
+        logger.write_to_err_log(f'exception in method {method_name} - {err}', 'controller')
+
+
+@bot.callback_query_handler(func=lambda call: call.data.split('get_manager_excel_financial_report_period:').__len__() > 1)
+def get_manager_excel_financial_report_period_handler(call):
+    try:
+        period = call.data.split('get_manager_excel_financial_report_period:')[1].split('_')[0]
+        page = call.data.split('_page:')[1]
+
+        bot.edit_message_text(chat_id=call.message.chat.id,
+                              message_id=call.message.message_id,
+                              text='Ваш файл готується до відправлення:)')
+
+        file_path = model.get_manager_excel_financial_report_path(period)
+
+        report = open(file_path, 'rb')
+        bot.send_document(call.message.chat.id, report)
+        report.close()
+
+        show_main_menu(call.message)
     except Exception as err:
         method_name = sys._getframe().f_code.co_name
 
