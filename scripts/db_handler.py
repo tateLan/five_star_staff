@@ -1200,4 +1200,14 @@ class DbHandler:
 
         return self.curs.fetchall()
 
+    @check_session_time_alive
+    def get_upcoming_shifts_for_notifier(self):
+        q = f'select staff_id, s.id, e.id, e.date_starts, e.title ' \
+            f'from (shift_registration sr left join shift s on sr.shift_id = s.id) ' \
+            f'left join events e on s.event_id = e.id ' \
+            f'where sr.check_in is null  and e.date_starts > now();'
+
+        self.curs.execute(q)
+
+        return self.curs.fetchall()
 

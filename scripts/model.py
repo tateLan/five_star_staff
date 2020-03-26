@@ -2000,7 +2000,7 @@ class Model:
 
     def get_manager_excel_financial_report_path(self, period):
         try:
-            path = f'{config.WORKING_DIR}user_reports/detailed_report_{period}.xlsx'
+            path = f'{config.WORKING_DIR}/user_reports/detailed_report_{period}.xlsx'
 
             if os.path.isfile(path):
                 os.remove(path)
@@ -2033,6 +2033,17 @@ class Model:
             res = staff_list[page * size: (page * size) + size]
 
             return math.ceil(len(staff_list) / size), res
+        except Exception as err:
+            method_name = sys._getframe().f_code.co_name
+
+            self.logger.write_to_log('exception', 'model')
+            self.logger.write_to_err_log(f'exception in method {method_name} - {err}', 'model')
+
+    def get_upcoming_shifts_for_notifier(self):
+        try:
+            self.logger.write_to_log('list of upcoming shift registrations requested', 'model')
+
+            return self.db_handler.get_upcoming_shifts_for_notifier()
         except Exception as err:
             method_name = sys._getframe().f_code.co_name
 

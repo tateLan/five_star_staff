@@ -26,3 +26,19 @@ class Notifier:
 
     def notify_about_price_changing(self, event_id):
         pass
+
+    def notify_waiter_about_upcoming_shift(self, notification):
+        """
+        Notifies waiter about upcoming shift(24 or 3 hours)
+        :param notification: set of data, needed for notification (staff id,
+                                                                   time left to shift,
+                                                                   start time,
+                                                                   shift title)
+        :return: None
+        """
+        msg = f'{emojize(" :boom:", use_aliases=True)}Увага! До зміни {notification[3]} лишилось *{notification[1]}*\n' \
+              f'{emojize(" :clock430:", use_aliases=True)}Початок зміни о {notification[2]}'
+
+        self.bot.send_message(chat_id=notification[0],
+                              parse_mode='Markdown',
+                              text=msg)

@@ -8,6 +8,7 @@ from log_handler import LogHandler
 import notifier as nt
 from emoji import emojize
 import sys
+from time_tracker import TimeTracker
 
 
 bot = telebot.TeleBot(config.TOKEN)
@@ -34,6 +35,7 @@ month_names = {
                 12:'Грудень'
             }
 
+
 def init_controller():
     """
     Controller initialization
@@ -41,8 +43,12 @@ def init_controller():
     """
     try:
         logger.write_to_log('controller initialised', 'sys')
-        bot.polling(none_stop=True)
 
+        time_tracker = TimeTracker(model)
+        time_tracker.setDaemon(True)
+        time_tracker.start()
+
+        bot.polling(none_stop=True)
     except Exception as err:
         method_name = sys._getframe( ).f_code.co_name
         logger.write_to_log('exception', 'sys')
