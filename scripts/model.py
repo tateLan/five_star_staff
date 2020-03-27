@@ -768,7 +768,6 @@ class Model:
                 self.create_shift(event_id, int(pro), int(mid), int(beginers))
             else:
                 self.update_shift(shift_id, int(pro), int(mid), int(beginers))
-
         except Exception as err:
             method_name = sys._getframe().f_code.co_name
 
@@ -2044,6 +2043,46 @@ class Model:
             self.logger.write_to_log('list of upcoming shift registrations requested', 'model')
 
             return self.db_handler.get_upcoming_shifts_for_notifier()
+        except Exception as err:
+            method_name = sys._getframe().f_code.co_name
+
+            self.logger.write_to_log('exception', 'model')
+            self.logger.write_to_err_log(f'exception in method {method_name} - {err}', 'model')
+
+    def update_staff_main_menu_id(self, staff_id, menu_msg_id):
+        """
+        Updates data about main menu for each user
+        :param staff_id: staff telegram id
+        :param menu_msg_id: message id of new main menu message
+        :return: None
+        """
+        try:
+            flag = True if self.db_handler.get_staff_main_menu_msg_id(staff_id) is not None else False
+
+            if flag:
+                self.db_handler.update_staff_main_menu_msg_id(staff_id, menu_msg_id)
+            else:
+                self.db_handler.insert_staff_main_menu_msg_id(staff_id, menu_msg_id)
+
+            self.logger.write_to_log('main menu message id updated', 'model')
+        except Exception as err:
+            method_name = sys._getframe().f_code.co_name
+
+            self.logger.write_to_log('exception', 'model')
+            self.logger.write_to_err_log(f'exception in method {method_name} - {err}', 'model')
+
+    def get_staff_main_menu_msg_id(self, staff_id):
+        """
+        Returns message id of last main menu message
+        :param staff_id: staff telegram id
+        :return: id of message
+        """
+        try:
+            res = self.db_handler.get_staff_main_menu_msg_id(staff_id)
+
+            self.logger.write_to_log('main menu message id got', 'model')
+
+            return res[1]
         except Exception as err:
             method_name = sys._getframe().f_code.co_name
 

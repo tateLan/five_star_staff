@@ -22,10 +22,8 @@ class TimeTracker(threading.Thread):
                     time_left_to_shift = self.get_time_left_to_shift()
 
                     for notification in time_left_to_shift:
-                        self.notifier.notify_waiter_about_upcoming_shift(notification)
-
-                    # TODO: implement main menu resending, after notification sent
-
+                        menu_id = self.model.get_staff_main_menu_msg_id(notification[0])
+                        self.notifier.notify_waiter_about_upcoming_shift(notification, menu_id)
                 time.sleep(config.TIME_TRACKER_SECONDS_PERIOD)
         except Exception as err:
             method_name = sys._getframe().f_code.co_name

@@ -1211,3 +1211,30 @@ class DbHandler:
 
         return self.curs.fetchall()
 
+    @check_session_time_alive
+    def get_staff_main_menu_msg_id(self, *args):
+        staff_id = args[0][0]
+
+        q = f'select * from staff_main_menu_msg_id where staff_id={staff_id};'
+
+        self.curs.execute(q)
+
+        return self.curs.fetchone()
+
+    @check_session_time_alive
+    def update_staff_main_menu_msg_id(self, *args):
+        staff_id, msg_id = args[0]
+
+        q = f'update staff_main_menu_msg_id set message_id={msg_id} where staff_id={staff_id};'
+
+        self.curs.execute(q)
+        self.connect.commit()
+
+    @check_session_time_alive
+    def insert_staff_main_menu_msg_id(self, *args):
+        staff_id, msg_id = args[0]
+
+        q = f'insert into staff_main_menu_msg_id values ({staff_id}, {msg_id});'
+
+        self.curs.execute(q)
+        self.connect.commit()

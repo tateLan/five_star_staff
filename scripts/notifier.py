@@ -1,5 +1,6 @@
 import config
 from emoji import emojize
+from telebot import types
 
 
 class Notifier:
@@ -27,7 +28,7 @@ class Notifier:
     def notify_about_price_changing(self, event_id):
         pass
 
-    def notify_waiter_about_upcoming_shift(self, notification):
+    def notify_waiter_about_upcoming_shift(self, notification, main_menu_id):
         """
         Notifies waiter about upcoming shift(24 or 3 hours)
         :param notification: set of data, needed for notification (staff id,
@@ -36,9 +37,19 @@ class Notifier:
                                                                    shift title)
         :return: None
         """
+        self.bot.edit_message_text(chat_id=notification[0],
+                                   message_id=main_menu_id,
+                                   text=f'Для вас є сповіщення. Потрапити до меню, ви можете натиснувши відповідну кнопку нижче',
+                                   reply_markup=None)
+
         msg = f'{emojize(" :boom:", use_aliases=True)}Увага! До зміни {notification[3]} лишилось *{notification[1]}*\n' \
               f'{emojize(" :clock430:", use_aliases=True)}Початок зміни о {notification[2]}'
 
+        inline_kb = types.InlineKeyboardMarkup()
+        inline_kb.row(types.InlineKeyboardButton(text=f'{emojize(" :house:", use_aliases=True)}Головне меню',
+                                                 callback_data=f'main_menu_new'))
+
         self.bot.send_message(chat_id=notification[0],
                               parse_mode='Markdown',
-                              text=msg)
+                              text=msg,
+                              reply_markup=inline_kb)

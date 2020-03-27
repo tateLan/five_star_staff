@@ -2412,7 +2412,6 @@ def get_manager_waiter_excel_financial_report_id_handler(call):
         report.close()
 
         show_main_menu(call.message)
-
     except Exception as err:
         method_name = sys._getframe().f_code.co_name
 
@@ -2567,6 +2566,7 @@ def show_main_menu(message, user_role, edit=False):
     try:
         inline_kb = None
         msg = ''
+        msg_id = 0
 
         if user_role == 'не підтверджено':
             logger.write_to_log('requested not accepted menu', message.chat.id)
@@ -2746,8 +2746,11 @@ def show_main_menu(message, user_role, edit=False):
             bot.edit_message_reply_markup(chat_id=message.chat.id,
                                           message_id=message.message_id,
                                           reply_markup=inline_kb)
+            msg_id = message.message_id
         else:
-            bot.send_message(chat_id=message.chat.id, text=msg, reply_markup=inline_kb)
+            msg_id = bot.send_message(chat_id=message.chat.id, text=msg, reply_markup=inline_kb).message_id
+
+        model.update_staff_main_menu_id(message.chat.id, msg_id)
     except Exception as err:
         method_name = sys._getframe( ).f_code.co_name
 
