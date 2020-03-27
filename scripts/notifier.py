@@ -7,13 +7,49 @@ class Notifier:
     def __init__(self, bot):
         self.bot = bot
 
-    def notify_manager_about_qualification_request(self):
-        # TODO:implement qualification request notifier
-        pass
+    def notify_manager_about_qualification_request(self, managers_list):
+        results = []
+        for manager, manager_menu_id in managers_list:
+            self.bot.edit_message_text(chat_id=manager[0],
+                                       message_id=manager_menu_id,
+                                       text=f'Для вас є сповіщення. Потрапити до меню, ви можете натиснувши відповідну кнопку нижче',
+                                       reply_markup=None)
 
-    def notify_manager_about_role_request(self):
-        # TODO:implement role request notifier
-        pass
+            msg = f'Була створена заявка на підтвердження кваліфікації! ' \
+                  f'Будь ласка, перейдіть в відповідний розділ меню щоб підтверити її'
+
+            inline_kb = types.InlineKeyboardMarkup()
+            inline_kb.row(types.InlineKeyboardButton(text=f'{emojize(" :house:", use_aliases=True)}Головне меню',
+                                                     callback_data=f'main_menu_new'))
+
+            notification_id = self.bot.send_message(chat_id=manager[0],
+                                  parse_mode='Markdown',
+                                  text=msg,
+                                  reply_markup=inline_kb).message_id
+            results.append((manager[0], notification_id))
+        return results
+
+    def notify_manager_about_role_request(self, managers_list):
+        results = []
+        for manager, manager_menu_id in managers_list:
+            self.bot.edit_message_text(chat_id=manager[0],
+                                       message_id=manager_menu_id,
+                                       text=f'Для вас є нове сповіщення. Потрапити до меню, ви можете натиснувши відповідну кнопку нижче',
+                                       reply_markup=None)
+
+            msg = f'Була створена заявка на підтвердження посади! ' \
+                  f'Будь ласка, перейдіть в відповідний розділ меню щоб підтверити її'
+
+            inline_kb = types.InlineKeyboardMarkup()
+            inline_kb.row(types.InlineKeyboardButton(text=f'{emojize(" :house:", use_aliases=True)}Головне меню',
+                                                     callback_data=f'main_menu_new'))
+
+            notification_id = self.bot.send_message(chat_id=manager[0],
+                                  parse_mode='Markdown',
+                                  text=msg,
+                                  reply_markup=inline_kb).message_id
+            results.append((manager[0], notification_id))
+        return results
 
     def notify_about_exception(self, err):
         msg = f'{(emojize(":x:", use_aliases=True) * 7)}\nException\n' \

@@ -194,7 +194,17 @@ class Model:
             self.db_handler.set_user_role(user_id, id_not_set)
             self.logger.write_to_log('user role changed to undefined', user_id)
 
-            self.notifier.notify_manager_about_role_request()
+            managers_main_menu_ids = []
+
+            for manager in self.get_managers_list():
+                managers_main_menu_ids.append((manager, self.get_staff_main_menu_msg_id(manager[0])))
+
+            messages = self.notifier.notify_manager_about_role_request(managers_main_menu_ids)
+
+            for staff_id, msg_id in messages:
+                self.update_staff_main_menu_id(staff_id, msg_id)
+
+
             self.logger.write_to_log('manager notified about role request', user_id)
         except Exception as err:
             method_name = sys._getframe().f_code.co_name
@@ -239,7 +249,16 @@ class Model:
             self.db_handler.set_user_qualification(user_id, id_not_set)
             self.logger.write_to_log('user qualification changed to undefined', user_id)
 
-            self.notifier.notify_manager_about_qualification_request()
+            managers_main_menu_ids = []
+
+            for manager in self.get_managers_list():
+                managers_main_menu_ids.append((manager, self.get_staff_main_menu_msg_id(manager[0])))
+
+            messages = self.notifier.notify_manager_about_qualification_request(managers_main_menu_ids)
+
+            for staff_id, msg_id in messages:
+                self.update_staff_main_menu_id(staff_id, msg_id)
+
             self.logger.write_to_log('manager notified about qualification request', user_id)
         except Exception as err:
             method_name = sys._getframe().f_code.co_name
@@ -2083,6 +2102,36 @@ class Model:
             self.logger.write_to_log('main menu message id got', 'model')
 
             return res[1]
+        except Exception as err:
+            method_name = sys._getframe().f_code.co_name
+
+            self.logger.write_to_log('exception', 'model')
+            self.logger.write_to_err_log(f'exception in method {method_name} - {err}', 'model')
+
+    def get_managers_list(self):
+        """
+        Returns list of manager accounts
+        :return: list of manager staff info
+        """
+        try:
+            role_id = [x[0] for x in self.db_handler.get_roles_list() if x[1] == 'менеджер'][0]
+            staff_by_role = self.db_handler.get_all_staff_by_role_id(role_id)
+
+            self.logger.write_to_log('managers list got', 'model')
+
+            return staff_by_role
+        except Exception as err:
+            method_name = sys._getframe().f_code.co_name
+
+            self.logger.write_to_log('exception', 'model')
+            self.logger.write_to_err_log(f'exception in method {method_name} - {err}', 'model')
+
+    def get_user_qualification_by_id(self, staff_id):
+        try:
+            staff = self.db_handler.get_staff_by_id(staff_id)
+            qualification = self.get_qualification_by_id(staff[5])[1]
+
+            return qualification
         except Exception as err:
             method_name = sys._getframe().f_code.co_name
 

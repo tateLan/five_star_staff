@@ -1238,3 +1238,14 @@ class DbHandler:
 
         self.curs.execute(q)
         self.connect.commit()
+
+    @check_session_time_alive
+    def get_all_staff_by_role_id(self, *args):
+        role_id = args[0][0]
+
+        q = f'select * from staff where staff_role={role_id};'
+
+        self.curs.execute(q)
+
+        return self.curs.fetchall()
+

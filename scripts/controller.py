@@ -1839,42 +1839,47 @@ def shift_archive_handler(call):
 
         if role_name == 'офіціант':
             number_of_pages, shifts = model.get_staff_ended_shifts(call.message.chat.id, page)
-            msg = f'Відпрацьовані Вами зміни\n' \
-                  f'{emojize(" :page_facing_up:", use_aliases=True)}Сторінка {page+1}/{number_of_pages}'
-            for shift in shifts:
-                inline_kb.row(types.InlineKeyboardButton(text=f'{shift[5]} {shift[4]}',
-                                                         callback_data=f'get_shift_details_sh_reg_id:{shift[0]}_page:{page}'))
-            next_page_indi = False
-            prev_page_indi = False
-
-            next_page = types.InlineKeyboardButton(text=f'{emojize(" :arrow_forward:", use_aliases=True)}', callback_data=f'shift_archive_page:{page+1}')
-            prev_page = types.InlineKeyboardButton(text=f'{emojize(" :arrow_backward:", use_aliases=True)}', callback_data=f'shift_archive_page:{page-1}')
-
-            if page+1 == number_of_pages:
+            if number_of_pages > 0:
+                msg = f'Відпрацьовані Вами зміни\n' \
+                      f'{emojize(" :page_facing_up:", use_aliases=True)}Сторінка {page+1}/{number_of_pages}'
+                for shift in shifts:
+                    inline_kb.row(types.InlineKeyboardButton(text=f'{shift[5]} {shift[4]}',
+                                                             callback_data=f'get_shift_details_sh_reg_id:{shift[0]}_page:{page}'))
                 next_page_indi = False
-            else:
-                next_page_indi = True
-            if page == 0:
                 prev_page_indi = False
-            else:
-                prev_page_indi = True
 
-            if prev_page_indi and next_page_indi:
-                inline_kb.row(prev_page, next_page)
-            if prev_page_indi and not next_page_indi:
-                inline_kb.row(prev_page)
-            if not prev_page_indi and next_page_indi:
-                inline_kb.row(next_page)
+                next_page = types.InlineKeyboardButton(text=f'{emojize(" :arrow_forward:", use_aliases=True)}', callback_data=f'shift_archive_page:{page+1}')
+                prev_page = types.InlineKeyboardButton(text=f'{emojize(" :arrow_backward:", use_aliases=True)}', callback_data=f'shift_archive_page:{page-1}')
+
+                if page+1 == number_of_pages:
+                    next_page_indi = False
+                else:
+                    next_page_indi = True
+                if page == 0:
+                    prev_page_indi = False
+                else:
+                    prev_page_indi = True
+
+                if prev_page_indi and next_page_indi:
+                    inline_kb.row(prev_page, next_page)
+                if prev_page_indi and not next_page_indi:
+                    inline_kb.row(prev_page)
+                if not prev_page_indi and next_page_indi:
+                    inline_kb.row(next_page)
+            else:
+                msg = f'На жаль у Вас ще немає відпрацьованих змін{emojize(" :grimacing:", use_aliases=True)}'
         elif role_name == 'менеджер':
             number_of_pages, shifts = model.get_all_ended_shifts_for_manager_stat(page)
 
-            msg = f'Список завершених змін:\n' \
-                  f'{emojize(" :page_facing_up:", use_aliases=True)}Сторінка {page + 1}/{number_of_pages}'
+            if number_of_pages > 0:
+                msg = f'Список завершених змін:\n' \
+                      f'{emojize(" :page_facing_up:", use_aliases=True)}Сторінка {page + 1}/{number_of_pages}'
 
-            for shift in shifts:
-                inline_kb.row(types.InlineKeyboardButton(text=f'{shift[1]} {shift[2]}',
-                                                         callback_data=f'get_manager_shift_details_id:{shift[0]}_page:{page}'))
-
+                for shift in shifts:
+                    inline_kb.row(types.InlineKeyboardButton(text=f'{shift[1]} {shift[2]}',
+                                                             callback_data=f'get_manager_shift_details_id:{shift[0]}_page:{page}'))
+            else:
+                msg = f'На жаль ще немає відпрацьованих змін{emojize(" :grimacing:", use_aliases=True)}'
             #TODO: finish manager shift statistics
 
         inline_kb.row(types.InlineKeyboardButton(text=f'{emojize(" :back:", use_aliases=True)}Повернутись до меню',
@@ -1948,36 +1953,38 @@ def waiter_accounting_handler(call):
         inline_kb = types.InlineKeyboardMarkup()
 
         number_of_pages, month_list = model.get_month_staff_worked(call.message.chat.id, page)
+        if number_of_pages > 0:
+            for month in month_list:
+                inline_kb.row(types.InlineKeyboardButton(
+                    text=f'{month_names[month[0]]} {month[1]}',
+                    callback_data=f'staff_money_report_period:{month[0]}-{month[1]}_page:{page}')
+                )
 
-        for month in month_list:
-            inline_kb.row(types.InlineKeyboardButton(
-                text=f'{month_names[month[0]]} {month[1]}',
-                callback_data=f'staff_money_report_period:{month[0]}-{month[1]}_page:{page}')
-            )
-
-        next_page_indi = False
-        prev_page_indi = False
-
-        next_page = types.InlineKeyboardButton(text=f'{emojize(" :arrow_forward:", use_aliases=True)}',
-                                               callback_data=f'waiter_accounting_page:{page + 1}')
-        prev_page = types.InlineKeyboardButton(text=f'{emojize(" :arrow_backward:", use_aliases=True)}',
-                                               callback_data=f'waiter_accounting_page:{page - 1}')
-
-        if page + 1 == number_of_pages:
             next_page_indi = False
-        else:
-            next_page_indi = True
-        if page == 0:
             prev_page_indi = False
-        else:
-            prev_page_indi = True
 
-        if prev_page_indi and next_page_indi:
-            inline_kb.row(prev_page, next_page)
-        if prev_page_indi and not next_page_indi:
-            inline_kb.row(prev_page)
-        if not prev_page_indi and next_page_indi:
-            inline_kb.row(next_page)
+            next_page = types.InlineKeyboardButton(text=f'{emojize(" :arrow_forward:", use_aliases=True)}',
+                                                   callback_data=f'waiter_accounting_page:{page + 1}')
+            prev_page = types.InlineKeyboardButton(text=f'{emojize(" :arrow_backward:", use_aliases=True)}',
+                                                   callback_data=f'waiter_accounting_page:{page - 1}')
+
+            if page + 1 == number_of_pages:
+                next_page_indi = False
+            else:
+                next_page_indi = True
+            if page == 0:
+                prev_page_indi = False
+            else:
+                prev_page_indi = True
+
+            if prev_page_indi and next_page_indi:
+                inline_kb.row(prev_page, next_page)
+            if prev_page_indi and not next_page_indi:
+                inline_kb.row(prev_page)
+            if not prev_page_indi and next_page_indi:
+                inline_kb.row(next_page)
+        else:
+            msg = f'На жаль у Вас ще немає відпрацьованих змін{emojize(" :grimacing:", use_aliases=True)}'
 
         inline_kb.row(types.InlineKeyboardButton(text=f'{emojize(" :back:", use_aliases=True)}Повернутись до меню',
                                                  callback_data='main_menu'))
@@ -2567,8 +2574,9 @@ def show_main_menu(message, user_role, edit=False):
         inline_kb = None
         msg = ''
         msg_id = 0
+        user_qualification = model.get_user_qualification_by_id(message.chat.id)
 
-        if user_role == 'не підтверджено':
+        if user_role == 'не підтверджено' or user_qualification == 'не підтверджено':
             logger.write_to_log('requested not accepted menu', message.chat.id)
 
             role_status = model.get_role_request_status(message.chat.id)[0]
