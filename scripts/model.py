@@ -407,7 +407,12 @@ class Model:
             self.logger.write_to_log(f'role request id:{request_id} confirmed', admin_id)
             self.db_handler.update_staff_role(id_user, role_id)
             self.logger.write_to_log(f'user data update in staff', id_user)
-            self.notifier.notify_user_about_accepted_request(user_id=id_user, request_type='заявка на посаду')
+
+            message_id = self.get_staff_main_menu_msg_id(id_user)
+
+            message_id = self.notifier.notify_user_about_accepted_request(id_user, message_id)
+
+            self.update_staff_main_menu_id(id_user, message_id)
 
         except Exception as err:
             method_name = sys._getframe().f_code.co_name
@@ -458,8 +463,11 @@ class Model:
             self.logger.write_to_log(f'qualification request id:{request_id} confirmed', admin_id)
             self.db_handler.update_staff_qualification(id_user, qual_id)
             self.logger.write_to_log(f'user data update in staff', id_user)
-            self.notifier.notify_user_about_accepted_request(user_id=id_user, request_type='заявка на кваліфікацію')
+            message_id = self.get_staff_main_menu_msg_id(id_user)
 
+            message_id = self.notifier.notify_user_about_accepted_request(id_user, message_id)
+
+            self.update_staff_main_menu_id(id_user, message_id)
         except Exception as err:
             method_name = sys._getframe().f_code.co_name
 
