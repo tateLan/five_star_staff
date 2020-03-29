@@ -85,10 +85,10 @@ class DbHandler:
         Method adding users telegram id to table staff
         :param user_id: user telegram id
         """
-        user_id = args[0][0]
+        user_id, rate = args[0]
         q = f'INSERT INTO five_star_db.staff (id, current_rating, general_rating,' \
             f' events_done, rate) VALUES ({user_id}, 0, 0, 0, ' \
-            f'{config.NEW_RATE})'
+            f'{rate})'
 
         self.curs.execute(q)
         self.connect.commit()
@@ -1248,4 +1248,15 @@ class DbHandler:
         self.curs.execute(q)
 
         return self.curs.fetchall()
+
+    @check_session_time_alive
+    def get_config_value(self, *args):
+        key = args[0]
+
+        q = f'select _value from config where _key={key};'
+
+        self.curs.execute(q)
+
+        return self.curs.fetchone()
+
 

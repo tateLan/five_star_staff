@@ -1377,7 +1377,7 @@ def register_to_shift_id_handler(call):
             msg = f'{emojize(":tada:", use_aliases=True)}Вас успішно зареєстровано на зміну!'
         else:
             msg = f'{emojize(" :disappointed:", use_aliases=True)}Вас не було зареєстровано на зміну, оскільки ви зареєстровані на інші зміни, які конфліктують.' \
-                  f' Інтервал між змінами повинен бути {config.HOURS_BETWEEN_SHIFTS} годин'
+                  f' Інтервал між змінами повинен бути {model.get_config_value("HOURS_BETWEEN_SHIFTS")} годин'
 
         bot.edit_message_text(chat_id=call.message.chat.id,
                               message_id=call.message.message_id,
@@ -1500,7 +1500,7 @@ def check_in_to_shift_reg_id_handler(call):
         if res == 1:
             msg = 'Зміну було розпочато!'
         else:
-            msg = f'Зміну не було розпочато. Встановлений час початку зміни складає {config.CHECK_IN_ALLOWED_BEFORE_SHIFT_MIN}хв. до початку події'
+            msg = f'Зміну не було розпочато. Встановлений час початку зміни складає {model.get_config_value("CHECK_IN_ALLOWED_BEFORE_SHIFT_MIN")}хв. до початку події'
 
         inline_kb.row(types.InlineKeyboardButton(text=f'{emojize(" :back:", use_aliases=True)}Повернутись до меню',
                                                  callback_data='main_menu'))

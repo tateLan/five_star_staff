@@ -67,7 +67,7 @@ class Model:
         :return: None
         """
         try:
-            self.db_handler.set_user_telegram_id(user_id)
+            self.db_handler.set_user_telegram_id(user_id, self.get_config_value('NEW_RATE'))
             self.logger.write_to_log('user telegram id added to db', user_id)
         except Exception as err:
             method_name = sys._getframe().f_code.co_name
@@ -492,9 +492,9 @@ class Model:
             _, qualification_name = self.db_handler.get_qualification_by_id(qualification_id)
 
             if qualification_name == 'професіонал':
-                self.db_handler.update_staff_rate(user_id, config.PRO_RATE)
+                self.db_handler.update_staff_rate(user_id, float(self.get_config_value('PRO_RATE')))
             elif qualification_name == 'середній рівень':
-                self.db_handler.update_staff_rate(user_id, config.MIDDLE_RATE)
+                self.db_handler.update_staff_rate(user_id, float(self.get_config_value('MID_RATE')))
 
             self.db_handler.accept_qualification_request(request_id, admin_id, mysql_date)
             self.logger.write_to_log(f'qualification request id:{request_id} confirmed', admin_id)
@@ -722,7 +722,7 @@ class Model:
             _, event_class_name, guests_per_waiter = self.db_handler.get_event_class_by_id(event_class_id)
 
             distance_in_km = self.get_geopy_distance(location)
-            price = distance_in_km * config.PRICE_OF_KM
+            price = distance_in_km * float(self.get_config_value('PRICE_OF_KM'))
             num_of_staff = math.ceil(guests / guests_per_waiter)
 
             if event_class_name == 'найвищий':  #85% of pro
@@ -742,9 +742,9 @@ class Model:
 
             hours_of_shift = (date_ends - date_starts).seconds / 3600
 
-            price += proffesional_staff * config.PRO_RATE * hours_of_shift
-            price += middle_staff * config.MID_RATE * hours_of_shift
-            price += new_staff * config.NEW_RATE * hours_of_shift
+            price += proffesional_staff * float(self.get_config_value('PRO_RATE')) * hours_of_shift
+            price += middle_staff * float(self.get_config_value('MID_RATE')) * hours_of_shift
+            price += new_staff * float(self.get_config_value('NEW_RATE')) * hours_of_shift
 
             price += price * 0.4
 
@@ -1069,7 +1069,7 @@ class Model:
 
                     if diff > timedelta(minutes=0):    # shift is later
                         interval = (diff - (shift_pretending[9] - shift_pretending[8])).seconds / 3600
-                        if interval >= config.HOURS_BETWEEN_SHIFTS:
+                        if interval >= int(self.get_config_value('HOURS_BETWEEN_SHIFTS')):
                             conflict = False
                         else:
                             conflict = True
@@ -1077,7 +1077,7 @@ class Model:
                     else:   # pretending is later
                         diff = shift_pretending[8] - shift[1]
                         interval = (diff.days * 24) + (diff - (shift[2] - shift[1])).seconds / 3600
-                        if interval >= config.HOURS_BETWEEN_SHIFTS:
+                        if interval >= int(self.get_config_value('HOURS_BETWEEN_SHIFTS')):
                             conflict = False
                         else:
                             conflict = True
@@ -1171,7 +1171,7 @@ class Model:
             diff = dates[2] - date
 
             if diff.days == 0:
-                if (diff.seconds / 60) < config.CHECK_IN_ALLOWED_BEFORE_SHIFT_MIN:
+                if (diff.seconds / 60) < int(self.get_config_value('CHECK_IN_ALLOWED_BEFORE_SHIFT_MIN')):
                     self.db_handler.check_in_to_shift(mysql_date, shift_reg_id)
                     self.logger.write_to_log(f'check in entered for shift {shift_reg_id}', 'model')
                     status = 1
@@ -1416,7 +1416,7 @@ class Model:
         try:
             overall_shifts = self.db_handler.get_ended_staff_shifts(staff_id)
             res = []
-            size = config.STAT_ITEMS_ON_ONE_PAGE
+            size = int(self.get_config_value('STAT_ITEMS_ON_ONE_PAGE'))
 
             res = overall_shifts[page*size : (page*size) + size]
             self.logger.write_to_log('list of ended shifts of staff is here', str(staff_id))
@@ -1438,7 +1438,7 @@ class Model:
         try:
             overall_shifts = self.db_handler.get_all_ended_shifts()
             res = []
-            size = config.STAT_ITEMS_ON_ONE_PAGE
+            size = int(self.get_config_value('STAT_ITEMS_ON_ONE_PAGE'))
 
             res = overall_shifts[page * size: (page * size) + size]
             self.logger.write_to_log('list of ended shifts of staff is here', 'model')
@@ -1589,7 +1589,7 @@ class Model:
                 if (reg[5].month, reg[5].year) not in month_list:
                     month_list.append((reg[5].month, reg[5].year))
 
-            size = config.STAT_ITEMS_ON_ONE_PAGE
+            size = int(self.get_config_value('STAT_ITEMS_ON_ONE_PAGE'))
             res = month_list[page * size: (page * size) + size]
 
             return math.ceil(len(month_list) / size), res
@@ -1747,7 +1747,7 @@ class Model:
                  if (reg[5].month, reg[5].year) not in month_list:
                      month_list.append((reg[5].month, reg[5].year))
 
-             size = config.STAT_ITEMS_ON_ONE_PAGE
+             size = int(self.get_config_value('STAT_ITEMS_ON_ONE_PAGE'))
              res = month_list[page * size: (page * size) + size]
 
              self.logger.write_to_log('got list of month all staff worked', 'model')
@@ -2054,7 +2054,7 @@ class Model:
             self.logger.write_to_log('staff ever worked requested', 'model')
 
             staff_list = self.db_handler.get_staff_ever_worked()
-            size = config.STAT_ITEMS_ON_ONE_PAGE
+            size = int(self.get_config_value('STAT_ITEMS_ON_ONE_PAGE'))
 
             res = staff_list[page * size: (page * size) + size]
 
@@ -2140,6 +2140,22 @@ class Model:
             qualification = self.get_qualification_by_id(staff[5])[1]
 
             return qualification
+        except Exception as err:
+            method_name = sys._getframe().f_code.co_name
+
+            self.logger.write_to_log('exception', 'model')
+            self.logger.write_to_err_log(f'exception in method {method_name} - {err}', 'model')
+
+    def get_config_value(self, key):
+        """
+        Returns value of key, from config table from db
+        :param key: name of value
+        :return: value
+        """
+        try:
+            self.logger.write_to_log('config data requested', 'model')
+
+            return self.db_handler.get_config_value(key)
         except Exception as err:
             method_name = sys._getframe().f_code.co_name
 

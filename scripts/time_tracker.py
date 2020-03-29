@@ -1,4 +1,3 @@
-import config
 import datetime
 import threading
 import time
@@ -24,7 +23,7 @@ class TimeTracker(threading.Thread):
                     for notification in time_left_to_shift:
                         menu_id = self.model.get_staff_main_menu_msg_id(notification[0])
                         self.notifier.notify_waiter_about_upcoming_shift(notification, menu_id)
-                time.sleep(config.TIME_TRACKER_SECONDS_PERIOD)
+                time.sleep(int(self.model.get_config_value('TIME_TRACKER_SECONDS_PERIOD')))
         except Exception as err:
             method_name = sys._getframe().f_code.co_name
 
