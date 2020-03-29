@@ -2608,10 +2608,12 @@ def show_main_menu(message, user_role, edit=False):
             confirm_requests = types.InlineKeyboardButton(text=f'{emojize(":white_check_mark:", use_aliases=True)}Підтвердження заявок', callback_data='confirm_requests')
             stats = types.InlineKeyboardButton(text=f'{emojize(":chart_with_upwards_trend:", use_aliases=True)}Статистика', callback_data='adm_stats')
             update = types.InlineKeyboardButton(text=f'{emojize(" :repeat:", use_aliases=True)}Оновити статус', callback_data='main_menu')
+
             if pending_requests > 0:
-                inline_kb.add(confirm_requests, stats, update)
-            else:
-                inline_kb.add(stats, update)
+                inline_kb.row(confirm_requests)
+
+            inline_kb.row(stats)
+            inline_kb.row(update)
             logger.write_to_log('displayed admin panel', message.chat.id)
         elif user_role == 'менеджер':
             logger.write_to_log('requested manager menu', message.chat.id)

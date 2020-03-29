@@ -1251,9 +1251,9 @@ class DbHandler:
 
     @check_session_time_alive
     def get_config_value(self, *args):
-        key = args[0]
+        key = args[0][0]
 
-        q = f'select _value from config where _key={key};'
+        q = f"select _value from config where _key='{key}';"
 
         self.curs.execute(q)
 

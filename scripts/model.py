@@ -2155,7 +2155,7 @@ class Model:
         try:
             self.logger.write_to_log('config data requested', 'model')
 
-            return self.db_handler.get_config_value(key)
+            return self.db_handler.get_config_value(key)[0]
         except Exception as err:
             method_name = sys._getframe().f_code.co_name
 
