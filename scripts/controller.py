@@ -9,6 +9,7 @@ import notifier as nt
 from emoji import emojize
 import sys
 from time_tracker import TimeTracker
+import time
 
 
 bot = telebot.TeleBot(config.TOKEN)
@@ -46,13 +47,14 @@ def init_controller():
 
         time_tracker = TimeTracker(model)
         time_tracker.setDaemon(True)
-        time_tracker.start()
+        # time_tracker.start()
 
         bot.polling(none_stop=True)
     except Exception as err:
         method_name = sys._getframe( ).f_code.co_name
         logger.write_to_log('exception', 'sys')
         logger.write_to_err_log(f'exception in method {method_name} - {err}', 'sys')
+        time.sleep(5)
 
 
 @bot.message_handler(commands=['start'])
@@ -240,7 +242,7 @@ def role_req_approving(call):
 
         role_request = model.get_unaccepted_role_requests()
 
-        req_id, staff_id, requested_role_id, date_placed, _, _, confirmed = role_request[0]
+        req_id, staff_id, requested_role_id, date_placed, _, confirmed = role_request[0]
 
         first_n, middle_n, last_n = model.get_user_name_by_id(staff_id)
 
@@ -323,7 +325,7 @@ def decline_role_request_handler(call):
 
         role_request = model.get_unaccepted_role_requests()
 
-        req_id, staff_id, requested_role_id, date_placed, _, _, confirmed = role_request[0]
+        req_id, staff_id, requested_role_id, date_placed, _, confirmed = role_request[0]
 
         first_n, middle_n, last_n = model.get_user_name_by_id(staff_id)
 
@@ -443,7 +445,7 @@ def quali_requests_approving_handler(call):
         logger.write_to_log('entered into qualification requests approving menu', call.message.chat.id)
         qualification_requests = model.get_unaccepted_qualification_requests()
 
-        req_id, staff_id, requested_q_id, date_placed, _, _, confirmed = qualification_requests[0]
+        req_id, staff_id, requested_q_id, date_placed, _, confirmed = qualification_requests[0]
         first_n, middle_n, last_n = model.get_user_name_by_id(staff_id)
 
         reply = f'Заявка на підтвердження кваліфікації\n' \
@@ -518,7 +520,7 @@ def decline_qualification_request_handler(call):
 
         qual_request = model.get_unaccepted_qualification_requests()[0]
 
-        req_id, staff_id, requested_qualification_id, date_placed, _, _, confirmed = qual_request
+        req_id, staff_id, requested_qualification_id, date_placed, _, confirmed = qual_request
         first_n, middle_n, last_n = model.get_user_name_by_id(staff_id)
 
         reply = f'Заявка на підтвердження кваліфікації\n' \
@@ -676,7 +678,7 @@ def adm_stat_session_duration_handler(call):
     try:
         session_duration = model.get_db_session_duration()
 
-        msg = f'Тривалість поточної сесеї з базою даних:\n' \
+        msg = f'Тривалість поточної сесії з базою даних:\n' \
               f'{"-" * 20}\n' \
               f'секунд - {session_duration}\n' \
               f'хвилин - {session_duration / 60}\n' \
@@ -712,7 +714,7 @@ def confirm_event_requests_handler(call):
         # TODO: client bot must guarantee next values to be entered: date starts, date ends and number of guests
         #
         request_id, event_id, client_id, title, location, date_starts, date_ends, guests, type_of_event_id, class_of_event_id, _ = model.get_event_request_extended_info()
-        _, client_username, f_name, l_name, company, phone, email = model.get_client_by_id(client_id)
+        _, client_username, f_name, m_name, l_name, company, phone, email = model.get_client_by_id(client_id)
         inline_kb = types.InlineKeyboardMarkup()
 
         class_of_event = None
@@ -984,8 +986,8 @@ def edit_event_details_handler(call):
               'та  натисніть на \'перерахувати ціну\')'
         inline_kb = types.InlineKeyboardMarkup()
 
-        for event_id, req_id, title, _, date_starts, _, _, _, _, _, _, _, _ in events:
-            _, _, fn, ln, _, _, _ = model.get_client_by_event_request_id(req_id)
+        for event_id, req_id, title, _, date_starts, _, _, _, _, _, _, _ in events:
+            _, _, fn, _, ln, _, _, _ = model.get_client_by_event_request_id(req_id)
             inline_kb.add(types.InlineKeyboardButton(text=f'{title} {fn} {ln} {date_starts.date()}', callback_data=f'modify_event_id:{event_id}'))
 
         bot.edit_message_text(chat_id=call.message.chat.id,
@@ -1011,7 +1013,7 @@ def modify_event_id_handler(call):
         event_id = call.data.split('modify_event_id:')[1]
 
         request_id, event_id, client_id, title, location, date_starts, date_ends, guests, type_of_event_id, class_of_event_id, _ = model.get_event_request_extended_info_by_id(event_id)
-        _, client_username, f_name, l_name, company, phone, email = model.get_client_by_id(client_id)
+        _, client_username, f_name, m_name, l_name, company, phone, email = model.get_client_by_id(client_id)
 
         class_of_event = None
         type_of_event = None
@@ -1090,7 +1092,7 @@ def set_supervisor_to_shift_id_handler(call):
     try:
         shift_id = call.data.split('set_supervisor_to_shift_id:')[1]
 
-        _, event_id, pro, mid, beg, supervisor_id, title, location, date_starts, date_ends, guests, type_id, class_id, staff, price, currency_id = model.get_shift_extended_info_by_id(shift_id)
+        _, event_id, pro, mid, beg, supervisor_id, title, location, date_starts, date_ends, guests, type_id, class_id, staff, price = model.get_shift_extended_info_by_id(shift_id)
         registered_to_shift = model.get_registered_to_shift_staff(shift_id)
 
         msg = ''
@@ -1104,9 +1106,9 @@ def set_supervisor_to_shift_id_handler(call):
                   f'{"-" * 20}\n' \
                   f'Прізвище, ім\'я, кваліфікація, рейтинг, відпрацьовано подій'
             for registration in registered_to_shift:
-                staff_id, fn, _, ln, _, qualification_id, cur_rat, _, _, events_done, _ = model.get_staff_by_id(registration[2])
-                _, qualification_name = model.get_qualification_by_id(qualification_id)
-                inline_kb.row(types.InlineKeyboardButton(text=f'{ln} {fn} {qualification_name} {cur_rat} {events_done}', callback_data=f'set_supervisor_staff:{staff_id}_shift:{shift_id}'))
+                staff_id, fn, _, ln, _, qualification_id, rating, _, events_done, _ = model.get_staff_by_id(registration[2])
+                qualification_name = model.get_user_qualification_by_id(staff_id)
+                inline_kb.row(types.InlineKeyboardButton(text=f'{ln} {fn} {qualification_name} {rating} {events_done}', callback_data=f'set_supervisor_staff:{staff_id}_shift:{shift_id}'))
 
         back_to_main = types.InlineKeyboardButton(text=f'{emojize(" :back:", use_aliases=True)}Повернутись до меню',
                                                   callback_data='main_menu')
@@ -1195,7 +1197,7 @@ def change_supervisor_at_shift_id_handler(call):
     try:
         shift_id = call.data.split('change_supervisor_at_shift_id:')[1]
 
-        _, event_id, pro, mid, beg, supervisor_id, title, location, date_starts, date_ends, guests, type_id, class_id, staff, price, currency_id = model.get_shift_extended_info_by_id(
+        _, event_id, pro, mid, beg, supervisor_id, title, location, date_starts, date_ends, guests, type_id, class_id, staff, price = model.get_shift_extended_info_by_id(
             shift_id)
         registered_to_shift = model.get_registered_to_shift_staff(shift_id)
 
@@ -1208,15 +1210,15 @@ def change_supervisor_at_shift_id_handler(call):
               f'Прізвище, ім\'я, кваліфікація, рейтинг, відпрацьовано подій'
 
         for registration in registered_to_shift:
-            staff_id, fn, _, ln, _, qualification_id, cur_rat, _, _, events_done, _ = model.get_staff_by_id(
+            staff_id, fn, _, ln, _, qualification_id, rating, _, events_done, _ = model.get_staff_by_id(
                 registration[2])
-            _, qualification_name = model.get_qualification_by_id(qualification_id)
+            qualification_name = model.get_user_qualification_by_id(staff_id)
             if staff_id == supervisor_id:
-                inline_kb.row(types.InlineKeyboardButton(text=f'{emojize(" :cop:", use_aliases=True)}{ln} {fn} {qualification_name} {cur_rat} {events_done}',
+                inline_kb.row(types.InlineKeyboardButton(text=f'{emojize(" :cop:", use_aliases=True)}{ln} {fn} {qualification_name} {rating} {events_done}',
                                                      callback_data=f'set_supervisor_staff:{staff_id}_shift:{shift_id}'))
             else:
                 inline_kb.row(types.InlineKeyboardButton(
-                    text=f'{ln} {fn} {qualification_name} {cur_rat} {events_done}',
+                    text=f'{ln} {fn} {qualification_name} {rating} {events_done}',
                     callback_data=f'set_supervisor_staff:{staff_id}_shift:{shift_id}'))
 
         back_to_main = types.InlineKeyboardButton(text=f'{emojize(" :back:", use_aliases=True)}Повернутись до меню',
@@ -1243,7 +1245,7 @@ def get_available_shifts_handler(call):
     """
     try:
         staff_info = model.get_staff_by_id(call.message.chat.id)
-        shifts = model.get_available_shift_for_staff(call.message.chat.id, staff_info[5])
+        shifts = model.get_available_shift_for_staff(call.message.chat.id)
 
         msg = ''
         inline_kb = types.InlineKeyboardMarkup()
@@ -1284,12 +1286,12 @@ def show_shift_info_id_handler(call):
     """
     try:
         shift_id = call.data.split('show_shift_info_id:')[1]
-        shift_id, event_id, pros, mids, begs, sup_id, title, loc, starts, ends, guests, type_id, class_id, staff, price, currency = model.get_shift_extended_info_by_id(shift_id)
+        shift_id, event_id, pros, mids, begs, sup_id, title, loc, starts, ends, guests, type_id, class_id, staff, price = model.get_shift_extended_info_by_id(shift_id)
         _, type_name = [x for x in model.get_event_types_list() if x[0] == type_id][0]
         _, class_name, _ = [x for x in model.get_event_classes_list() if x[0] == class_id][0]
 
         staff_info = model.get_staff_by_id(call.message.chat.id)
-        shifts = [x for x in model.get_available_shift_for_staff(call.message.chat.id, staff_info[5]) if x[0] != shift_id]
+        shifts = [x for x in model.get_available_shift_for_staff(call.message.chat.id) if x[0] != shift_id]
 
         msg = f'{emojize(" :dizzy:", use_aliases=True)}Назва події:{title}\n' \
               f'{"-" * 20}\n' \
@@ -1582,7 +1584,7 @@ def check_out_handler(call):
         current_shift_reg_id = 0
 
         for sh_reg in shift_registrations:
-            if sh_reg[4] == 1:
+            if sh_reg[3] == 1:
                 if sh_reg[5] is not None and (sh_reg[6] is None or sh_reg[6] == ''):
                     now_on_shift = True
                     current_shift_reg_id = sh_reg[0]
@@ -1837,7 +1839,7 @@ def shift_archive_handler(call):
         page = int(call.data.split('shift_archive_page:')[1])
         role_id, role_name = model.get_user_role_by_id(call.message.chat.id)
 
-        if role_name == 'офіціант':
+        if role_name == 'Офіціант':
             number_of_pages, shifts = model.get_staff_ended_shifts(call.message.chat.id, page)
             if number_of_pages > 0:
                 msg = f'Відпрацьовані Вами зміни\n' \
@@ -1868,7 +1870,7 @@ def shift_archive_handler(call):
                     inline_kb.row(next_page)
             else:
                 msg = f'На жаль у Вас ще немає відпрацьованих змін{emojize(" :grimacing:", use_aliases=True)}'
-        elif role_name == 'менеджер':
+        elif role_name == 'Менеджер':
             number_of_pages, shifts = model.get_all_ended_shifts_for_manager_stat(page)
 
             if number_of_pages > 0:
@@ -2576,7 +2578,7 @@ def show_main_menu(message, user_role, edit=False):
         msg_id = 0
         user_qualification = model.get_user_qualification_by_id(message.chat.id)
 
-        if user_role == 'не підтверджено' or user_qualification == 'не підтверджено':
+        if user_role == 'Не підтверджено' or user_qualification == 'Не підтверджено':
             logger.write_to_log('requested not accepted menu', message.chat.id)
 
             role_status = model.get_role_request_status(message.chat.id)[0]
@@ -2593,7 +2595,7 @@ def show_main_menu(message, user_role, edit=False):
             inline_kb.add(types.InlineKeyboardButton(text=f'{emojize(" :repeat:", use_aliases=True)}Оновити статус', callback_data='main_menu'))
 
             logger.write_to_log('displayed not accepted menu', message.chat.id)
-        elif user_role == 'адміністратор':
+        elif user_role == 'Адміністратор':
             logger.write_to_log('requested admin panel', message.chat.id)
 
             pending_requests = model.get_unaccepted_request_count()
@@ -2615,7 +2617,7 @@ def show_main_menu(message, user_role, edit=False):
             inline_kb.row(stats)
             inline_kb.row(update)
             logger.write_to_log('displayed admin panel', message.chat.id)
-        elif user_role == 'менеджер':
+        elif user_role == 'Менеджер':
             logger.write_to_log('requested manager menu', message.chat.id)
             staff_pending_requests = model.get_unaccepted_request_count()
             event_pending_requests = model.get_unaccepted_event_requests_count()
@@ -2624,7 +2626,7 @@ def show_main_menu(message, user_role, edit=False):
 
             staff_requests_str = f'{emojize(" :busts_in_silhouette:", use_aliases=True)}{emojize(":negative_squared_cross_mark:", use_aliases=True) if staff_pending_requests > 0 else emojize(" :white_check_mark:", use_aliases=True)} Не підтверджених заявок персоналу{(": " + str(staff_pending_requests)) if staff_pending_requests > 0 else " немає"}'
             event_requests_str = f'{emojize(" :dizzy:", use_aliases=True)}{emojize(":negative_squared_cross_mark:", use_aliases=True) if event_pending_requests > 0 else emojize(" :white_check_mark:", use_aliases=True)} Не підтверджених заявок на події{(": " + str(event_pending_requests)) if event_pending_requests > 0 else " немає"}'
-            upcoming_shifts_str = f'{emojize(" :open_file_folder:", use_aliases=True)}Змін на черзі: {upcoming_shifts.__len__()}'
+            upcoming_shifts_str = f'{emojize(" :open_file_folder:", use_aliases=True)}Змін на черзі: {"0" if upcoming_shifts is None else upcoming_shifts.__len__()}'
 
             msg = f'Меню менеджера\n' \
                   f'{"-" * 20}\n' \
@@ -2687,10 +2689,10 @@ def show_main_menu(message, user_role, edit=False):
             inline_kb.row(update)
 
             logger.write_to_log('displayed manager menu', message.chat.id)
-        elif user_role == 'офіціант':
+        elif user_role == 'Офіціант':
             logger.write_to_log('requested waiter menu', message.chat.id)
 
-            staff_id, fn, mn, ln, role_id, qualification_id, curr_rat, gen_rat, reg_date, events_done, rate = model.get_staff_by_id(message.chat.id)
+            staff_id, fn, mn, ln, role_req_id, qualification_req_id, curr_rat, reg_date, events_done, rate = model.get_staff_by_id(message.chat.id)
             shifts_ext = model.get_staff_shifts(message.chat.id)
             shift_registrations = model.get_staffs_shift_registrations(staff_id)
             upcoming_shifts = 0
@@ -2701,7 +2703,7 @@ def show_main_menu(message, user_role, edit=False):
             on_shift_string = f'{emojize(" :heavy_exclamation_mark:", use_aliases=True)}Ви зараз на зміні{emojize(" :heavy_exclamation_mark:", use_aliases=True)}'
 
             for sh_reg in shift_registrations:
-                if sh_reg[4] == 1:
+                if sh_reg[3] == 1:
                     if sh_reg[5] is not None and (sh_reg[6] is None or sh_reg[6] == ''):
                         now_on_shift = True
                         current_shift_reg_id = sh_reg[0]
@@ -2732,13 +2734,13 @@ def show_main_menu(message, user_role, edit=False):
             stat = types.InlineKeyboardButton(text=f'{emojize(":bar_chart:", use_aliases=True)}Статистика', callback_data=f'waiter_statistics')
             shift_management_for_supervisor = types.InlineKeyboardButton(text=f'{emojize(" :wrench:", use_aliases=True)}Управління зміною', callback_data=f'manage_shift_for_supervisor_shift:{current_shift_id}')
 
-            if model.get_available_shift_for_staff(message.chat.id, qualification_id).__len__() > 0:
+            if model.get_available_shift_for_staff(message.chat.id).__len__() > 0:
                 inline_kb.row(check_available_shifts)
 
             if model.get_staff_registered_shifts(message.chat.id).__len__() > 0:
                 inline_kb.row(check_registered_shifts)
 
-            if now_on_shift:
+            if now_on_shift and not supervisor:
                 inline_kb.row(check_out)
 
             if supervisor:

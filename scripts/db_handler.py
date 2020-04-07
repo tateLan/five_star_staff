@@ -14,7 +14,7 @@ class DbHandler:
             host='vps721220.ovh.net',
             user='five_star',
             passwd='qualityisma1n',
-            database='five_star_db',
+            database='five_star',
             auth_plugin='mysql_native_password'
         )
         self.curs = self.connect.cursor(buffered=True)
@@ -43,7 +43,7 @@ class DbHandler:
                     host='vps721220.ovh.net',
                     user='five_star',
                     passwd='qualityisma1n',
-                    database='five_star_db',
+                    database='five_star',
                     auth_plugin='mysql_native_password'
                 )
                 self.curs = self.connect.cursor(buffered=True)
@@ -55,9 +55,7 @@ class DbHandler:
                     return func(self, args)
             except Exception as err:
                 meth_name = sys._getframe().f_code.co_name
-
-                print(f'exception in method {meth_name} - {err}')
-
+                raise Exception(f'database exception in method {meth_name} - {err}')
         return inner_func
 
     @check_session_time_alive
@@ -69,7 +67,7 @@ class DbHandler:
         :return: first and last name of 0 if not exists
         """
         id = args[0][0]
-        q = f'select first_name, last_name from staff where id={id};'
+        q = f'select first_name, last_name from staff where staff_id={id};'
 
         self.curs.execute(q)
 
@@ -86,8 +84,8 @@ class DbHandler:
         :param user_id: user telegram id
         """
         user_id, rate = args[0]
-        q = f'INSERT INTO five_star_db.staff (id, current_rating, general_rating,' \
-            f' events_done, rate) VALUES ({user_id}, 0, 0, 0, ' \
+        q = f'INSERT INTO staff (staff_id, rating,' \
+            f' events_done, rate) VALUES ({user_id}, 0, 0, ' \
             f'{rate})'
 
         self.curs.execute(q)
@@ -101,7 +99,7 @@ class DbHandler:
         :param name: first name of user
         """
         user_id, name = args[0]
-        q = f"UPDATE five_star_db.staff SET first_name = '{name}' WHERE (id = '{user_id}');"
+        q = f"UPDATE staff SET first_name = '{name}' WHERE (staff_id = '{user_id}');"
 
         self.curs.execute(q)
 
@@ -115,7 +113,7 @@ class DbHandler:
         :param m_name: user middle name
         """
         user_id, m_name = args[0]
-        q = f"UPDATE five_star_db.staff SET middle_name = '{m_name}' WHERE (id = '{user_id}');"
+        q = f"UPDATE five_star.staff SET middle_name = '{m_name}' WHERE (staff_id = '{user_id}');"
 
         self.curs.execute(q)
 
@@ -129,43 +127,16 @@ class DbHandler:
         :param l_name: last name
         """
         user_id, l_name = args[0]
-        q = f"UPDATE five_star_db.staff SET last_name = '{l_name}' WHERE (id = '{user_id}');"
+        q = f"UPDATE staff SET last_name = '{l_name}' WHERE (staff_id = '{user_id}');"
 
         self.curs.execute(q)
 
-        self.connect.commit()
-
-    @check_session_time_alive
-    def set_user_role(self, *args):
-        """
-        Inserts role into users account
-        :param user_id: user telegram id
-        :param role_id: id of role
-        :return:
-        """
-        user_id, role_id = args[0]
-        q = f"UPDATE five_star_db.staff SET staff_role = {role_id} WHERE (id ={user_id});"
-        self.curs.execute(q)
-
-        self.connect.commit()
-
-    @check_session_time_alive
-    def set_user_qualification(self, *args):
-        """
-        Updates user qualification
-        :param user_id: user telegram id
-        :param role_quali: qualification code
-        :return: None
-        """
-        user_id, role_quali = args[0]
-        q = f'UPDATE five_star_db.staff SET qualification = {role_quali} WHERE (id = {user_id});'
-        self.curs.execute(q)
         self.connect.commit()
 
     @check_session_time_alive
     def update_staff_rate(self, *args):
         id, rate = args[0]
-        q = f'update staff set rate={rate} where id={id};'
+        q = f'update staff set rate={rate} where staff_id ={id};'
 
         self.curs.execute(q)
         self.connect.commit()
@@ -176,7 +147,7 @@ class DbHandler:
         Returns list of roles
         :return:  set of roles
         """
-        q = "select * from roles where name_role != 'не підтверджено';"
+        q = "select * from role where role_name != 'Не підтверджено';"
         self.curs.execute(q)
         res = self.curs.fetchall()
 
@@ -190,7 +161,7 @@ class DbHandler:
         :return: role instance
         """
         role_id = args[0][0]
-        q = f'select * from roles where id_role = {role_id};'
+        q = f'select * from role where role_id = {role_id};'
 
         self.curs.execute(q)
 
@@ -204,7 +175,61 @@ class DbHandler:
         :return: qualification instance
         """
         id = args[0][0]
-        q = f'select * from qualification where id = {id};'
+
+        q = f'select * from qualification where qualification_id={id};'
+
+        self.curs.execute(q)
+
+        return self.curs.fetchone()
+
+    @check_session_time_alive
+    def get_staff_role_by_id(self, *args):
+        staff_id = args[0][0]
+
+        q = f'select confirmed ' \
+            f'from (staff left join role_confirmation rc on staff.role_confirmation_id = rc.role_confirmation_id) ' \
+            f'left join role rl on rl.role_id = rc.role_id ' \
+            f'where staff_id={staff_id};'
+        self.curs.execute(q)
+
+        is_confirmed = bool(self.curs.fetchone()[0])
+
+        if is_confirmed:
+            q = f'select rl.role_id, rl.role_name ' \
+                f'from (staff left join role_confirmation rc on staff.role_confirmation_id = rc.role_confirmation_id) ' \
+                f'left join role rl on rl.role_id = rc.role_id ' \
+                f'where staff_id={staff_id};'
+        else:
+            q = f"select * from role where role_name = 'Не підтверджено'"
+
+        self.curs.execute(q)
+
+        return self.curs.fetchone()
+
+    @check_session_time_alive
+    def get_staff_qualification_by_id(self, *args):
+        """
+        Returns staff qualification by staff id
+        :param args: staff telegram id
+        :return: qualification instance
+        """
+        user_id = args[0][0]
+
+        q = f'select confirmed ' \
+            f'from (staff left join qualification_confirmation qc on staff.qualification_confirmation_id = qc.qualification_confirmation_id) ' \
+            f'left join qualification ql on ql.qualification_id = qc.qualification_id ' \
+            f'where staff_id={user_id};'
+        self.curs.execute(q)
+
+        is_confirmed = bool(self.curs.fetchone()[0])
+
+        if is_confirmed:
+            q = f'select ql.qualification_id, ql.qualification_name ' \
+                f'from (staff left join qualification_confirmation qc on staff.qualification_confirmation_id = qc.qualification_confirmation_id) ' \
+                f'left join qualification ql on ql.qualification_id = qc.qualification_id ' \
+                f'where staff_id={user_id};'
+        else:
+            q = f"select * from qualification where qualification_name = 'Не підтверджено'"
 
         self.curs.execute(q)
 
@@ -217,7 +242,7 @@ class DbHandler:
         :return: role id
         """
         cursor = self.connect.cursor()
-        q = "select id_role from roles where name_role = 'не підтверджено';"
+        q = "select role_id from role where role_name = 'Не підтверджено';"
         cursor.execute(q)
         res = cursor.fetchone()
 
@@ -228,13 +253,26 @@ class DbHandler:
         """
         Creates role request
         :param user_id: user telegram id who left request
-        :param role_id: id of reole, needed to approve
+        :param role_id: id of role, needed to approve
         :return: None
         """
         user_id, role_id = args[0]
-        cursor = self.connect.cursor()
-        q = f"INSERT INTO five_star_db.role_confirmation (staff_id, requested_role, confirmed) VALUES ({user_id}, {role_id}, 0);"
-        cursor.execute(q)
+        date = datetime.now()
+        mysql_date = f'{date.year}-{date.month}-{date.day} {date.hour}:{date.minute}:{date.second}'
+
+        q = f"INSERT INTO role_confirmation (role_id, date_placed, confirmed) " \
+            f"VALUES ({role_id}, '{mysql_date}', 0);"
+
+        self.curs.execute(q)
+        self.connect.commit()
+
+        q = f'select last_insert_id();'
+
+        self.curs.execute(q)
+        role_confirmation_id = self.curs.fetchone()[0]
+
+        q = f'update staff set role_confirmation_id ={role_confirmation_id} where staff_id={user_id};'
+        self.curs.execute(q)
         self.connect.commit()
 
     @check_session_time_alive
@@ -244,7 +282,7 @@ class DbHandler:
         :return: id of qualifications
         """
         cursor = self.connect.cursor()
-        q = "select * from qualification where degree != 'не підтверджено';"
+        q = "select * from qualification where qualification_name != 'Не підтверджено';"
         cursor.execute(q)
         res = cursor.fetchall()
 
@@ -257,7 +295,7 @@ class DbHandler:
         :return: id of 'not 'set'
         """
         cursor = self.connect.cursor()
-        q = "select id from qualification where degree = 'не підтверджено';"
+        q = "select qualification_id from qualification where qualification_name = 'Не підтверджено';"
         cursor.execute(q)
         res = cursor.fetchone()
 
@@ -272,9 +310,22 @@ class DbHandler:
         :return: None
         """
         user_id, quali_id = args[0]
-        cursor = self.connect.cursor()
-        q = f"INSERT INTO five_star_db.qualification_confirmation (staff_id, requested_qualification, confirmed) VALUES ({user_id}, {quali_id}, 0);"
-        cursor.execute(q)
+        date = datetime.now()
+        mysql_date = f'{date.year}-{date.month}-{date.day} {date.hour}:{date.minute}:{date.second}'
+
+        q = f"INSERT INTO qualification_confirmation (qualification_id, date_placed, confirmed) " \
+            f"VALUES ({quali_id}, '{mysql_date}', 0);"
+
+        self.curs.execute(q)
+        self.connect.commit()
+
+        q = f'select last_insert_id();'
+
+        self.curs.execute(q)
+        quali_confirmation_id = self.curs.fetchone()[0]
+
+        q = f'update staff set qualification_confirmation_id ={quali_confirmation_id} where staff_id={user_id};'
+        self.curs.execute(q)
         self.connect.commit()
 
     @check_session_time_alive
@@ -286,7 +337,22 @@ class DbHandler:
         """
         self.connect.commit()
         user_id = args[0][0]
-        q = f'select roles.id_role, roles.name_role from staff left join roles on staff.staff_role = roles.id_role where id = {user_id}'
+
+        q = f'select confirmed ' \
+            f'from (staff left join role_confirmation rc on staff.role_confirmation_id = rc.role_confirmation_id) ' \
+            f'left join role rl on rl.role_id = rc.role_id ' \
+            f'where staff_id={user_id};'
+        self.curs.execute(q)
+
+        is_confirmed = bool(self.curs.fetchone()[0])
+
+        if is_confirmed:
+            q = f'select rl.role_id, rl.role_name ' \
+                f'from (staff left join role_confirmation rc on staff.role_confirmation_id = rc.role_confirmation_id) ' \
+                f'left join role rl on rl.role_id = rc.role_id ' \
+                f'where staff_id={user_id};'
+        else:
+            q = f"select * from role where role_name = 'Не підтверджено'"
 
         self.curs.execute(q)
 
@@ -299,7 +365,9 @@ class DbHandler:
         :return: unaccepted requests
         """
         self.connect.commit()
-        q = 'select * from role_confirmation where confirmed = 0'
+        q = 'select rc.role_confirmation_id, st.staff_id, rc.role_id, rc.date_placed, rc.date_approved, rc.confirmed ' \
+            'from role_confirmation rc left join staff st on st.role_confirmation_id=rc.role_confirmation_id ' \
+            'where confirmed = 0'
 
         self.curs.execute(q)
         return self.curs.fetchall()
@@ -311,7 +379,9 @@ class DbHandler:
         :return: unaccepted qualification requests
         """
         self.connect.commit()
-        q = 'select * from qualification_confirmation where confirmed = 0'
+        q = 'select qc.qualification_confirmation_id, s.staff_id, qc.qualification_id, qc.date_placed, qc.date_approved, qc.confirmed ' \
+            'from qualification_confirmation qc left join staff s on qc.qualification_confirmation_id = s.qualification_confirmation_id ' \
+            'where confirmed = 0'
 
         self.curs.execute(q)
 
@@ -321,12 +391,14 @@ class DbHandler:
     def get_role_request_status(self, *args):
         """
         Returns user's role request status
-        :param user_id: user telegram id
+        :param user_id: staff telegram id
         :return: status of request
         """
         user_id = args[0][0]
         self.connect.commit()
-        q = f'select confirmed from role_confirmation where staff_id = {user_id};'
+        q = f'select confirmed ' \
+            f'from staff st left join role_confirmation rc on st.role_confirmation_id=rc.role_confirmation_id ' \
+            f'where st.staff_id = {user_id};'
 
         self.curs.execute(q)
 
@@ -341,7 +413,9 @@ class DbHandler:
         """
         user_id = args[0][0]
         self.connect.commit()
-        q = f'select confirmed from qualification_confirmation where staff_id = {user_id}'
+        q = f'select confirmed ' \
+            f'from staff st left join qualification_confirmation qc on st.qualification_confirmation_id = qc.qualification_confirmation_id ' \
+            f'where st.staff_id = {user_id}'
 
         self.curs.execute(q)
 
@@ -355,7 +429,7 @@ class DbHandler:
         :return: set of first name, middle name, last name
         """
         user_id = args[0][0]
-        q = f'select first_name, middle_name, last_name from staff where id = {user_id};'
+        q = f'select first_name, middle_name, last_name from staff where staff_id={user_id};'
 
         self.curs.execute(q)
 
@@ -370,23 +444,9 @@ class DbHandler:
         :param date: date of confirmation
         :return: None
         """
-        request_id, admin_id, date = args[0]
-        q = f"update role_confirmation set date_confirmed = '{date}', confirmed_by = {admin_id}, confirmed = 1 where id = {request_id};"
-
-        self.curs.execute(q)
-
-        self.connect.commit()
-
-    @check_session_time_alive
-    def update_staff_role(self, *args):
-        """
-        Updates user role in staff table
-        :param user_id:  user telegram id
-        :param role_id: role id
-        :return:  None
-        """
-        user_id ,role_id = args[0]
-        q = f'update staff set staff_role = {role_id} where id = {user_id};'
+        request_id, date = args[0]
+        q = f"update role_confirmation set date_approved = '{date}', confirmed = 1 " \
+            f"where role_confirmation_id = {request_id};"
 
         self.curs.execute(q)
 
@@ -396,11 +456,13 @@ class DbHandler:
     def get_role_id_from_role_request(self, *args):
         """
         Returns role id, requested by user
-        :param request: id of role request
+        :param staff_id: staff telegram id
         :return: role id
         """
-        request = args[0][0]
-        q = f'select requested_role from role_confirmation where staff_id = {request};'
+        staff_id = args[0][0]
+        q = f'select role_id ' \
+            f'from role_confirmation rc left join staff st on rc.role_confirmation_id = st.role_confirmation_id ' \
+            f'where staff_id = {staff_id};'
 
         self.curs.execute(q)
 
@@ -414,7 +476,7 @@ class DbHandler:
         :return: None
         """
         request_id, role_id = args[0]
-        q = f'update role_confirmation set requested_role = {role_id} where id = {request_id};'
+        q = f'update role_confirmation set role_id = {role_id} where role_confirmation_id = {request_id};'
 
         self.curs.execute(q)
         self.connect.commit()
@@ -427,7 +489,9 @@ class DbHandler:
         :return: qualification id
         """
         staff_id = args[0][0]
-        q = f'select requested_qualification from qualification_confirmation where staff_id = {staff_id};'
+        q = f'select qualification_id ' \
+            f'from qualification_confirmation qc left join staff st on qc.qualification_confirmation_id=st.qualification_confirmation_id ' \
+            f'where staff_id = {staff_id};'
 
         self.curs.execute(q)
 
@@ -440,23 +504,11 @@ class DbHandler:
         :param args: request id, admin telegram id, formatted date
         :return: None
         """
-        req_id, admin_id, date = args[0]
+        req_id, date = args[0]
 
-        q = f"update qualification_confirmation set date_confirmed = '{date}', confirmed_by = {admin_id}, confirmed = 1 where id = {req_id};"
+        q = f"update qualification_confirmation set date_approved='{date}', confirmed = 1" \
+            f" where qualification_confirmation_id = {req_id};"
 
-        self.curs.execute(q)
-        self.connect.commit()
-
-    @check_session_time_alive
-    def update_staff_qualification(self, *args):
-        """
-        Updates staff information about his qualification
-        :param args: user telegram id, id of qualification
-        :return: None
-        """
-        user_id, quali_id = args[0]
-
-        q = f'update staff set qualification = {quali_id} where id = {user_id}'
         self.curs.execute(q)
         self.connect.commit()
 
@@ -469,7 +521,8 @@ class DbHandler:
         """
         req_id, qual_id = args[0]
 
-        q = f'update qualification_confirmation set requested_qualification={qual_id} where id={req_id};'
+        q = f'update qualification_confirmation set qualification_id={qual_id} ' \
+            f'where qualification_confirmation_id={req_id};'
         self.curs.execute(q)
 
         self.connect.commit()
@@ -482,7 +535,9 @@ class DbHandler:
         :return: count of staff by role
         """
         role_id = args[0][0]
-        q = f'select count(*) from staff where staff_role={role_id};'
+        q = f'select count(*) ' \
+            f'from staff st left join role_confirmation rc on st.role_confirmation_id=rc.role_confirmation_id ' \
+            f'where role_id={role_id};'
 
         self.curs.execute(q)
 
@@ -525,9 +580,10 @@ class DbHandler:
         """
         self.connect.commit()
 
-        q = 'select er.id, e.id, client_id, e.title, location, date_starts, date_ends, guests, ' \
-            'type_of_event, event_class, staff_needed  ' \
-            'from event_request er left join events e on er.id = e.event_request_id ' \
+        q = 'select er.event_request_id, e.event_id, client_id, e.title, e.location, ' \
+            'date_starts, date_ends, number_of_guests, ' \
+            'event_type_id, event_class_id, staff_needed  ' \
+            'from event_request er left join event e on er.event_request_id = e.event_request_id ' \
             'where processed = 0'
 
         self.curs.execute(q)
@@ -538,7 +594,7 @@ class DbHandler:
     def get_client_by_id(self, *args):
         client_id = args[0][0]
 
-        q = f'select * from clients where id = {client_id};'
+        q = f'select * from client where client_id = {client_id};'
 
         self.curs.execute(q)
 
@@ -548,7 +604,7 @@ class DbHandler:
     def get_event_type_by_id(self, *args):
         id = args[0][0]
 
-        q = f'select * from event_types where id={id}'
+        q = f'select * from event_type where event_type_id={id}'
 
         self.curs.execute(q)
 
@@ -558,7 +614,7 @@ class DbHandler:
     def get_event_class_by_id(self, *args):
         id = args[0][0]
 
-        q = f'select * from event_class where id={id};'
+        q = f'select * from event_class where event_class_id={id};'
 
         self.curs.execute(q)
 
@@ -568,7 +624,7 @@ class DbHandler:
     def update_event_location(self, *args):
         id, location = args[0]
 
-        q = f"update events set location='{location}' where id={id};"
+        q = f"update event set location='{location}' where event_id={id};"
 
         self.curs.execute(q)
         self.connect.commit()
@@ -577,7 +633,7 @@ class DbHandler:
     def update_event_title(self, *args):
         id, title = args[0]
 
-        q = f"update events set title='{title}' where id={id};"
+        q = f"update event set title='{title}' where event_id={id};"
 
         self.curs.execute(q)
         self.connect.commit()
@@ -586,7 +642,7 @@ class DbHandler:
     def update_event_type(self, *args):
         id, type_of_event = args[0]
 
-        q = f"update events set type_of_event='{type_of_event}' where id={id};"
+        q = f"update event set event_type_id='{type_of_event}' where event_id={id};"
 
         self.curs.execute(q)
         self.connect.commit()
@@ -595,14 +651,14 @@ class DbHandler:
     def update_event_class(self, *args):
         id, class_of_event = args[0]
 
-        q = f"update events set event_class='{class_of_event}' where id={id};"
+        q = f"update event set event_class_id='{class_of_event}' where event_id={id};"
 
         self.curs.execute(q)
         self.connect.commit()
 
     @check_session_time_alive
     def get_event_types(self):
-        q = 'select * from event_types;'
+        q = 'select * from event_type;'
 
         self.curs.execute(q)
 
@@ -620,10 +676,10 @@ class DbHandler:
     def get_event_request_extended_info_by_id(self, *args):
         event_id = args[0][0]
 
-        q = f'select er.id, e.id, client_id, e.title, location, date_starts, date_ends, guests, ' \
-            f'type_of_event, event_class, staff_needed  ' \
-            f'from event_request er left join events e on er.id = e.event_request_id ' \
-            f'where e.id = {event_id};'
+        q = f'select er.event_request_id, e.event_id, client_id, e.title, location, date_starts, date_ends, number_of_guests, ' \
+            f'event_type_id, event_class_id, staff_needed  ' \
+            f'from event_request er left join event e on er.event_request_id = e.event_request_id ' \
+            f'where e.event_id = {event_id};'
 
         self.curs.execute(q)
 
@@ -633,7 +689,7 @@ class DbHandler:
     def get_event_request_id_by_event_id(self, *args):
         event_id = args[0][0]
 
-        q = f'select event_request_id from events where id={event_id}'
+        q = f'select event_request_id from event where event_id={event_id}'
 
         self.curs.execute(q)
 
@@ -647,19 +703,12 @@ class DbHandler:
         """
         event_request_id, staff_processed = args[0]
 
-        q = f'update event_request set staff_processed={staff_processed}, processed=1 where id={event_request_id};'
+        q = f'update event_request set staff_processed={staff_processed}, processed=1 ' \
+            f'where event_request_id={event_request_id};'
 
         self.curs.execute(q)
 
         self.connect.commit()
-
-    @check_session_time_alive
-    def get_currencies(self):
-        q = 'select * from curency;'
-
-        self.curs.execute(q)
-
-        return self.curs.fetchall()
 
     @check_session_time_alive
     def update_event_price_and_staff(self, *args):
@@ -667,9 +716,10 @@ class DbHandler:
         :param args: event id, price, curency id, staff needed
         :return:
         """
-        event_id, price, currency_id, staff_needed = args[0]
+        event_id, price, staff_needed = args[0]
 
-        q = f'update events set price={price}, staff_needed={staff_needed}, curency={currency_id} where id={event_id};'
+        q = f'update event set price={price}, staff_needed={staff_needed} ' \
+            f'where event_id={event_id};'
 
         self.curs.execute(q)
         self.connect.commit()
@@ -682,7 +732,7 @@ class DbHandler:
         """
         event_id, pro, mid, beg = args[0]
 
-        q = f'insert into shift(event_id, profesionals_number, middles_number, beginers_number)' \
+        q = f'insert into shift(event_id, professionals_number, middles_number, beginers_number)' \
             f'values ({event_id}, {pro}, {mid}, {beg});'
 
         self.curs.execute(q)
@@ -694,7 +744,9 @@ class DbHandler:
         Returns all events which didnt start yet
         :return: list of events
         """
-        q = 'select * from events where date_starts > now()'
+        date = datetime.now()
+        mysql_date = f'{date.year}-{date.month}-{date.day} {date.hour}:{date.minute}:00'
+        q = f"select * from event where date_starts > '{mysql_date}'"
 
         self.curs.execute(q)
 
@@ -707,8 +759,8 @@ class DbHandler:
         """
         date = datetime.now()
         mysql_date = f'{date.year}-{date.month}-{date.day} {date.hour}:{date.minute}:00'
-        q = f"select s.id, s.event_id, s.profesionals_number, s.middles_number, s.beginers_number, s.supervisor " \
-            f"from shift s left join events e on s.event_id = e.id " \
+        q = f"select s.shift_id, s.event_id, s.professionals_number, s.middles_number, s.beginers_number, s.supervisor " \
+            f"from shift s left join event e on s.event_id = e.event_id " \
             f"where e.date_starts > '{mysql_date}'"
 
         self.curs.execute(q)
@@ -719,7 +771,7 @@ class DbHandler:
     def get_event_request_by_id(self, *args):
         event_req = args[0][0]
 
-        q = f'select * from event_request where id={event_req};'
+        q = f'select * from event_request where event_request_id={event_req};'
 
         self.curs.execute(q)
 
@@ -729,16 +781,16 @@ class DbHandler:
     def delete_event_by_id(self, *args):
         event_id = args[0][0]
 
-        q = f'delete from events where id={event_id};'
+        q = f'delete from event where event_id={event_id};'
 
         self.curs.execute(q)
         self.connect.commit()
 
     @check_session_time_alive
-    def get_event_id_from_shift(self, *args):
+    def get_shift_id_by_event_id(self, *args):
         event_id = args[0][0]
 
-        q = f'select id from shift where event_id={event_id};'
+        q = f'select shift_id from shift where event_id={event_id};'
 
         self.curs.execute(q)
 
@@ -748,7 +800,8 @@ class DbHandler:
     def update_shift_by_id(self, *args):
         shift_id, pro, mid, beg = args[0]
 
-        q = f'update shift set profesionals_number={pro}, middles_number={mid}, beginers_number={beg} where id={shift_id};'
+        q = f'update shift set professionals_number={pro}, middles_number={mid}, beginers_number={beg} ' \
+            f'where shift_id={shift_id};'
 
         self.curs.execute(q)
         self.connect.commit()
@@ -757,7 +810,8 @@ class DbHandler:
     def is_event_processed(self, *args):
         event_id = args[0][0]
 
-        q = f'select processed from event_request er left join events e on er.id = e.event_request_id where e.id = {event_id}'
+        q = f'select processed from event_request er left join event e on er.event_request_id = e.event_request_id ' \
+            f'where e.event_id = {event_id}'
 
         self.curs.execute(q)
 
@@ -767,10 +821,10 @@ class DbHandler:
     def get_shift_extended_info_by_id(self, *args):
         shift_id = args[0][0]
 
-        q = f'select sh.id, e.id, profesionals_number, middles_number, beginers_number, supervisor,' \
-            f'title, location, date_starts, date_ends, guests, type_of_event, event_class, staff_needed, price, curency' \
-            f' from shift sh left join events e on sh.event_id = e.id ' \
-            f'where sh.id={shift_id};'
+        q = f'select sh.shift_id, e.event_id, professionals_number, middles_number, beginers_number, supervisor,' \
+            f'title, location, date_starts, date_ends, number_of_guests, event_type_id, event_class_id, staff_needed, price' \
+            f' from shift sh left join event e on sh.event_id = e.event_id ' \
+            f'where sh.shift_id={shift_id};'
 
         self.curs.execute(q)
 
@@ -790,7 +844,7 @@ class DbHandler:
     def get_staff_by_id(self, *args):
         staff_id = args[0][0]
 
-        q = f'select * from staff where id={staff_id};'
+        q = f'select * from staff where staff_id={staff_id};'
 
         self.curs.execute(q)
 
@@ -800,7 +854,7 @@ class DbHandler:
     def update_shift_supervisor(self, *args):
         shift_id, staff_id = args[0]
 
-        q = f'update shift set supervisor={staff_id} where id={shift_id};'
+        q = f'update shift set supervisor={staff_id} where shift_id={shift_id};'
 
         self.curs.execute(q)
         self.connect.commit()
@@ -818,7 +872,9 @@ class DbHandler:
     def get_staff_id_registered_to_shift_by_id(self, *args):
         shift_id = args[0][0]
 
-        q = f'select staff_id from shift_registration sr left join staff s on sr.staff_id = s.id where shift_id={shift_id} and registered=1;'
+        q = f'select s.staff_id ' \
+            f'from shift_registration sr left join staff s on sr.staff_id = s.staff_id ' \
+            f'where shift_id={shift_id} and registered=1;'
 
         self.curs.execute(q)
         return self.curs.fetchall()
@@ -827,7 +883,8 @@ class DbHandler:
     def register_staff_to_shift(self, *args):
         shift_id, staff_id, time = args[0]
 
-        q = f"insert into shift_registration (shift_id, staff_id, date_registered ,registered) values ({shift_id}, {staff_id}, '{time}', 1);"
+        q = f"insert into shift_registration (shift_id, staff_id, date_registered ,registered) " \
+            f"values ({shift_id}, {staff_id}, '{time}', 1);"
 
         self.curs.execute(q)
         self.connect.commit()
@@ -836,7 +893,8 @@ class DbHandler:
     def reregister_staff_to_shift(self, *args):
         shift_id, staff_id, time = args[0]
 
-        q = f"update shift_registration set registered=1, date_registered='{time}' where staff_id={staff_id} and shift_id={shift_id}"
+        q = f"update shift_registration set registered=1, date_registered='{time}' " \
+            f"where staff_id={staff_id} and shift_id={shift_id}"
 
         self.curs.execute(q)
         self.connect.commit()
@@ -846,8 +904,8 @@ class DbHandler:
         staff_id = args[0][0]
 
         q = f'select title, date_starts, date_ends ' \
-            f'from (shift_registration left join shift s on shift_registration.shift_id = s.id) ' \
-            f'left join events e on e.id = s.event_id where staff_id={staff_id} and registered=1 and e.date_ends > now();'
+            f'from (shift_registration left join shift s on shift_registration.shift_id = s.shift_id) ' \
+            f'left join event e on e.event_id = s.event_id where staff_id={staff_id} and registered=1 and e.date_ends > now();'
 
         self.curs.execute(q)
 
@@ -866,9 +924,9 @@ class DbHandler:
     def get_staff_registered_shifts_by_id_extended(self, *args):
         staff_id = args[0][0]
 
-        q = f'select shift_registration.id, title, date_starts, date_ends, check_in, check_out, rating, payment ' \
-            f'from (shift_registration left join shift s on shift_registration.shift_id = s.id) ' \
-            f'left join events e on e.id = s.event_id ' \
+        q = f'select shift_registration.shift_registration_id, title, date_starts, date_ends, check_in, check_out, rating, payment ' \
+            f'from (shift_registration left join shift s on shift_registration.shift_id = s.shift_id) ' \
+            f'left join event e on e.event_id = s.event_id ' \
             f'where staff_id={staff_id} and registered=1 and check_out is null;'
 
         self.curs.execute(q)
@@ -879,9 +937,9 @@ class DbHandler:
     def get_staff_registered_shifts_by_shift_registration_id_extended(self, *args):
         shift_registration_id, staff_id = args[0]
 
-        q = f'select shift_registration.id, title, date_starts, date_ends, date_registered, check_in, check_out, rating, payment ' \
-            f'from (shift_registration left join shift s on shift_registration.shift_id = s.id) ' \
-            f'left join events e on e.id = s.event_id where shift_registration.id={shift_registration_id} and staff_id={staff_id};'
+        q = f'select shift_registration.shift_registration_id, title, date_starts, date_ends, date_registered, check_in, check_out, rating, payment ' \
+            f'from (shift_registration left join shift s on shift_registration.shift_id = s.shift_id) ' \
+            f'left join event e on e.event_id = s.event_id where shift_registration.shift_registration_id={shift_registration_id} and staff_id={staff_id};'
 
         self.curs.execute(q)
 
@@ -891,7 +949,8 @@ class DbHandler:
     def cancel_shift_registration_for_user(self, *args):
         shift_reg_id, staff_id, date = args[0]
 
-        q = f"update shift_registration set registered=0, date_registered='{date}' where id={shift_reg_id} and staff_id={staff_id};"
+        q = f"update shift_registration set registered=0, date_registered='{date}' " \
+            f"where shift_registration_id={shift_reg_id} and staff_id={staff_id};"
 
         self.curs.execute(q)
         self.connect.commit()
@@ -900,7 +959,8 @@ class DbHandler:
     def get_shift_registration_by_staff_id_and_shift_id(self, *args):
         staff_id, shift_id = args[0]
 
-        q = f'select * from shift_registration where staff_id={staff_id} and shift_id={shift_id};'
+        q = f'select * from shift_registration ' \
+            f'where staff_id={staff_id} and shift_id={shift_id};'
 
         self.curs.execute(q)
 
@@ -915,8 +975,10 @@ class DbHandler:
         """
         shift_reg_id, staff = args[0]
 
-        q = f'select s.id, e.id, e.date_starts, e.date_ends from (shift_registration sr left join shift s on sr.shift_id = s.id) ' \
-            f'left join events e on s.event_id = e.id where sr.id = {shift_reg_id} and sr.staff_id={staff};'
+        q = f'select e.event_id, s.shift_id, e.date_starts, e.date_ends ' \
+            f'from (shift_registration sr left join shift s on sr.shift_id = s.shift_id) ' \
+            f'left join event e on s.event_id = e.event_id ' \
+            f'where sr.shift_registration_id = {shift_reg_id} and sr.staff_id={staff};'
 
         self.curs.execute(q)
 
@@ -931,7 +993,8 @@ class DbHandler:
         """
         date, shift_reg_id = args[0]
 
-        q = f"update shift_registration set check_in='{date}' where id={shift_reg_id};"
+        q = f"update shift_registration set check_in='{date}' " \
+            f"where shift_registration_id={shift_reg_id};"
 
         self.curs.execute(q)
         self.connect.commit()
@@ -940,7 +1003,8 @@ class DbHandler:
     def check_out_off_shift(self, *args):
         shift_reg_id, time = args[0]
 
-        q = f"update shift_registration set check_out='{time}' where id={shift_reg_id};"
+        q = f"update shift_registration set check_out='{time}' " \
+            f"where shift_registration_id={shift_reg_id};"
 
         self.curs.execute(q)
         self.connect.commit()
@@ -949,16 +1013,18 @@ class DbHandler:
     def update_shift_status(self, *args):
         shift_id = args[0][0]
 
-        q = f'update shift set ended=1 where id={shift_id};'
+        q = f'update shift set ended=1 where shift_id={shift_id};'
+        self.curs.execute(q)
         self.connect.commit()
 
     @check_session_time_alive
     def get_staff_on_shift(self, *args):
         shift_id = args[0][0]
 
-        q = f'select s.id, first_name, middle_name, last_name, q.degree, current_rating, events_done ' \
-            f'from (shift_registration sr left join staff s on sr.staff_id = s.id) ' \
-            f'left join qualification q on s.qualification=q.id ' \
+        q = f'select s.staff_id, first_name, middle_name, last_name, q.qualification_name, s.rating, events_done ' \
+            f'from ((shift_registration sr left join staff s on sr.staff_id = s.staff_id) ' \
+            f'left join qualification_confirmation qc on s.qualification_confirmation_id=qc.qualification_confirmation_id) ' \
+            f'left join qualification q on qc.qualification_id=q.qualification_id ' \
             f'where shift_id={shift_id}'
 
         self.curs.execute(q)
@@ -969,7 +1035,7 @@ class DbHandler:
     def get_supervisor_on_shift(self, *args):
         shift_id = args[0][0]
 
-        q = f'select supervisor from shift where id={shift_id}'
+        q = f'select supervisor from shift where shift_id={shift_id}'
 
         self.curs.execute(q)
 
@@ -979,7 +1045,7 @@ class DbHandler:
     def get_staff_event_number(self, *args):
         staff_id = args[0][0]
 
-        q = f'select events_done from staff where id={staff_id};'
+        q = f'select events_done from staff where staff_id={staff_id};'
 
         self.curs.execute(q)
 
@@ -989,7 +1055,7 @@ class DbHandler:
     def update_staff_rating_and_events_count(self, *args):
         staff_id, rating, events = args[0]
 
-        q = f'update staff set events_done={events}, current_rating={rating} where id={staff_id}'
+        q = f'update staff set events_done={events}, rating={rating} where staff_id={staff_id}'
 
         self.curs.execute(q)
         self.connect.commit()
@@ -1038,7 +1104,8 @@ class DbHandler:
     def get_shift_registration_by_shift_reg_id(self, *args):
         shift_reg_id = args[0][0]
 
-        q = f'select * from shift_registration where id={shift_reg_id};'
+        q = f'select * from shift_registration ' \
+            f'where shift_registration_id={shift_reg_id};'
         self.curs.execute(q)
 
         return self.curs.fetchone()
@@ -1066,9 +1133,9 @@ class DbHandler:
     def get_ended_staff_shifts(self, *args):
         staff_id = args[0][0]
 
-        q = f'select sr.id, sh.id, date_registered, check_in, check_out, e.title ' \
-            f'from (shift_registration sr left join shift sh on sr.shift_id = sh.id) ' \
-            f'left join events e on sh.event_id = e.id ' \
+        q = f'select sr.shift_registration_id, sh.shift_id, date_registered, check_in, check_out, e.title ' \
+            f'from (shift_registration sr left join shift sh on sr.shift_id = sh.shift_id) ' \
+            f'left join event e on sh.event_id = e.event_id ' \
             f'where staff_id={staff_id} and check_out is not null'
 
         self.curs.execute(q)
@@ -1077,8 +1144,8 @@ class DbHandler:
 
     @check_session_time_alive
     def get_all_ended_shifts(self):
-        q = f'select shift.id, title, events.date_starts, events.date_ends ' \
-            f'from shift left join events on shift.event_id = events.id ' \
+        q = f'select shift.shift_id, title, e.date_starts, e.date_ends ' \
+            f'from shift left join event e on shift.event_id = e.event_id ' \
             f'where ended = 1 ' \
             f'order by date_ends desc'
 
@@ -1090,9 +1157,11 @@ class DbHandler:
     def get_shift_general_info_for_archive(self, *args):
         shift_id = args[0][0]
 
-        q = f'select title, date_starts, date_ends, guests, et.name_of_event, ec.class ' \
-            f'from ((shift sh left join events e on sh.event_id = e.id) left join event_types et on et.id = e.type_of_event)' \
-            f'left join event_class ec on ec.id = e.event_class where sh.id={shift_id};'
+        q = f'select title, date_starts, date_ends, number_of_guests, et.event_type_name, ec.event_class_name ' \
+            f'from ((shift sh left join event e on sh.event_id = e.event_id) ' \
+            f'left join event_type et on et.event_type_id = e.event_type_id)' \
+            f'left join event_class ec on ec.event_class_id = e.event_class_id ' \
+            f'where sh.shift_id={shift_id};'
 
         self.curs.execute(q)
 
@@ -1103,7 +1172,8 @@ class DbHandler:
         sh_reg_id = args[0][0]
 
         q = f'select check_in, check_out, rating, payment' \
-            f' from shift_registration where id={sh_reg_id};'
+            f' from shift_registration ' \
+            f'where shift_registration_id={sh_reg_id};'
 
         self.curs.execute(q)
 
@@ -1113,13 +1183,14 @@ class DbHandler:
     def get_shift_info_for_manager(self, *args):
         shift_id = args[0][0]
 
-        q = f'select * from shift where id={shift_id};'
+        q = f'select * from shift where shift_id={shift_id};'
 
     @check_session_time_alive
     def get_shift_registrations_by_shift_id(self, *args):
         shift_id = args[0][0]
 
-        q = f'select * from shift_registration where shift_id={shift_id} and registered=1;'
+        q = f'select * from shift_registration ' \
+            f'where shift_id={shift_id} and registered=1;'
 
         self.curs.execute(q)
 
@@ -1142,9 +1213,9 @@ class DbHandler:
     def get_shift_registrations_for_period(self, *args):
         staff_id, date_from, date_to = args[0]
 
-        q = f"select sr.id, sh.id, title, check_in, check_out, rating, payment " \
-            f"from (shift_registration sr left join shift sh on sr.shift_id = sh.id) " \
-            f"left join events e on e.id = sh.event_id " \
+        q = f"select sr.shift_registration_id, sh.shift_id, e.title, check_in, check_out, rating, payment " \
+            f"from (shift_registration sr left join shift sh on sr.shift_id = sh.shift_id) " \
+            f"left join event e on e.event_id = sh.event_id " \
             f"where staff_id={staff_id} and registered=1 and check_out is not null and " \
             f"check_in >='{date_from}' and check_in <= '{date_to}'" \
             f"order by check_in desc;"
@@ -1179,7 +1250,7 @@ class DbHandler:
     def get_ended_registrations_by_shift_id(self, *args):
         shift_id = args[0][0]
 
-        q = f'select id, staff_id, date_registered, check_in, check_out, rating, payment ' \
+        q = f'select shift_registration_id, staff_id, date_registered, check_in, check_out, rating, payment ' \
             f'from shift_registration ' \
             f'where shift_id={shift_id};'
 
@@ -1189,12 +1260,14 @@ class DbHandler:
 
     @check_session_time_alive
     def get_staff_ever_worked(self):
-        q = f'select staff_id, last_name, first_name, middle_name, rl.name_role, ql.degree ' \
-            f'from ((shift_registration sh left join staff st on st.id = sh.staff_id) ' \
-            f'left join roles rl on st.staff_role = rl.id_role) ' \
-            f'left join qualification ql on ql.id = st.qualification ' \
+        q = f'select st.staff_id, last_name, first_name, middle_name, rl.role_name, q.qualification_name ' \
+            f'from ((((shift_registration sh left join staff st on st.staff_id = sh.staff_id) ' \
+            f'left join role_confirmation rc on st.role_confirmation_id = rc.role_confirmation_id) ' \
+            f'left join role rl on rc.role_id = rl.role_id)' \
+            f'left join qualification_confirmation qc on st.qualification_confirmation_id) ' \
+            f'left join qualification q on q.qualification_id=qc.qualification_id ' \
             f'where check_out is not null ' \
-            f'group by staff_id'
+            f'group by st.staff_id, last_name, first_name, middle_name, rl.role_name, q.qualification_name'
 
         self.curs.execute(q)
 
@@ -1202,9 +1275,9 @@ class DbHandler:
 
     @check_session_time_alive
     def get_upcoming_shifts_for_notifier(self):
-        q = f'select staff_id, s.id, e.id, e.date_starts, e.title ' \
-            f'from (shift_registration sr left join shift s on sr.shift_id = s.id) ' \
-            f'left join events e on s.event_id = e.id ' \
+        q = f'select staff_id, s.shift_id, e.event_id, e.date_starts, e.title ' \
+            f'from (shift_registration sr left join shift s on sr.shift_id = s.shift_id) ' \
+            f'left join event e on s.event_id = e.event_id ' \
             f'where sr.check_in is null  and e.date_starts > now();'
 
         self.curs.execute(q)
@@ -1215,7 +1288,7 @@ class DbHandler:
     def get_staff_main_menu_msg_id(self, *args):
         staff_id = args[0][0]
 
-        q = f'select * from staff_main_menu_msg_id where staff_id={staff_id};'
+        q = f'select * from staff_last_message_to_edit where staff_id={staff_id};'
 
         self.curs.execute(q)
 
@@ -1225,7 +1298,7 @@ class DbHandler:
     def update_staff_main_menu_msg_id(self, *args):
         staff_id, msg_id = args[0]
 
-        q = f'update staff_main_menu_msg_id set message_id={msg_id} where staff_id={staff_id};'
+        q = f'update staff_last_message_to_edit set message_id={msg_id} where staff_id={staff_id};'
 
         self.curs.execute(q)
         self.connect.commit()
@@ -1234,7 +1307,7 @@ class DbHandler:
     def insert_staff_main_menu_msg_id(self, *args):
         staff_id, msg_id = args[0]
 
-        q = f'insert into staff_main_menu_msg_id values ({staff_id}, {msg_id});'
+        q = f'insert into staff_last_message_to_edit values ({staff_id}, {msg_id});'
 
         self.curs.execute(q)
         self.connect.commit()
@@ -1243,7 +1316,9 @@ class DbHandler:
     def get_all_staff_by_role_id(self, *args):
         role_id = args[0][0]
 
-        q = f'select * from staff where staff_role={role_id};'
+        q = f'select * ' \
+            f'from staff left join role_confirmation rc on staff.role_confirmation_id = rc.role_confirmation_id' \
+            f' where rc.role_id={role_id};'
 
         self.curs.execute(q)
 

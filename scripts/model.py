@@ -191,9 +191,6 @@ class Model:
             self.db_handler.left_role_approving_request(user_id, selected_id)
             self.logger.write_to_log('role approving request left', user_id)
 
-            self.db_handler.set_user_role(user_id, id_not_set)
-            self.logger.write_to_log('user role changed to undefined', user_id)
-
             managers_main_menu_ids = []
 
             for manager in self.get_managers_list():
@@ -245,9 +242,6 @@ class Model:
                     break
             self.db_handler.left_qualification_approving_request(user_id, selected_id)
             self.logger.write_to_log('qualification approving request left', user_id)
-
-            self.db_handler.set_user_qualification(user_id, id_not_set)
-            self.logger.write_to_log('user qualification changed to undefined', user_id)
 
             managers_main_menu_ids = []
 
@@ -403,10 +397,8 @@ class Model:
             role_id = self.db_handler.get_role_id_from_role_request(id_user)[0]
             mysql_date = f'{now.year}-{now.month}-{now.day} {now.time().hour}:{now.time().minute}:00'
 
-            self.db_handler.accept_role_request(request_id, admin_id, mysql_date)
+            self.db_handler.accept_role_request(request_id, mysql_date)
             self.logger.write_to_log(f'role request id:{request_id} confirmed', admin_id)
-            self.db_handler.update_staff_role(id_user, role_id)
-            self.logger.write_to_log(f'user data update in staff', id_user)
 
             message_id = self.get_staff_main_menu_msg_id(id_user)
 
@@ -434,12 +426,13 @@ class Model:
             mysql_date = f'{now.year}-{now.month}-{now.day} {now.time().hour}:{now.time().minute}:00'
 
             self.db_handler.modify_role_request(request_id, role_id)
-            self.db_handler.accept_role_request(request_id, admin_id, mysql_date)
+            self.accept_role_request(request_id,admin_id, user_id)
             self.logger.write_to_log(f'role request id:{request_id} confirmed', admin_id)
-            self.db_handler.update_staff_role(user_id, role_id)
-            self.logger.write_to_log(f'user data update in staff', user_id)
-            self.notifier.notify_user_about_accepted_request(user_id=user_id, request_type='заявка на посаду')
+            message_id = self.get_staff_main_menu_msg_id(user_id)
 
+            message_id = self.notifier.notify_user_about_accepted_request(user_id, message_id)
+
+            self.update_staff_main_menu_id(user_id, message_id)
         except Exception as err:
             method_name = sys._getframe().f_code.co_name
 
@@ -457,12 +450,17 @@ class Model:
         try:
             now = datetime.now()
             mysql_date = f'{now.year}-{now.month}-{now.day} {now.time().hour}:{now.time().minute}:00'
-            qual_id = self.db_handler.get_qualification_id_from_qualification_request(id_user)[0]
 
-            self.db_handler.accept_qualification_request(request_id, admin_id, mysql_date)
+            self.db_handler.accept_qualification_request(request_id, mysql_date)
             self.logger.write_to_log(f'qualification request id:{request_id} confirmed', admin_id)
-            self.db_handler.update_staff_qualification(id_user, qual_id)
-            self.logger.write_to_log(f'user data update in staff', id_user)
+
+            qualification_name = self.get_user_qualification_by_id(id_user)
+
+            if qualification_name == 'Професіонал':
+                self.db_handler.update_staff_rate(id_user, float(self.get_config_value('PRO_RATE')))
+            elif qualification_name == 'Середній рівень':
+                self.db_handler.update_staff_rate(id_user, float(self.get_config_value('MID_RATE')))
+
             message_id = self.get_staff_main_menu_msg_id(id_user)
 
             message_id = self.notifier.notify_user_about_accepted_request(id_user, message_id)
@@ -489,19 +487,14 @@ class Model:
 
             self.db_handler.modify_qualification_request(request_id, qualification_id)
 
-            _, qualification_name = self.db_handler.get_qualification_by_id(qualification_id)
-
-            if qualification_name == 'професіонал':
-                self.db_handler.update_staff_rate(user_id, float(self.get_config_value('PRO_RATE')))
-            elif qualification_name == 'середній рівень':
-                self.db_handler.update_staff_rate(user_id, float(self.get_config_value('MID_RATE')))
-
-            self.db_handler.accept_qualification_request(request_id, admin_id, mysql_date)
+            self.accept_qualification_request(request_id, admin_id, user_id)
             self.logger.write_to_log(f'qualification request id:{request_id} confirmed', admin_id)
-            self.db_handler.update_staff_qualification(user_id, qualification_id)
-            self.logger.write_to_log(f'user data update in staff', user_id)
-            self.notifier.notify_user_about_accepted_request(user_id=user_id, request_type='заявка на кваліфікацію')
 
+            message_id = self.get_staff_main_menu_msg_id(user_id)
+
+            message_id = self.notifier.notify_user_about_accepted_request(user_id, message_id)
+
+            self.update_staff_main_menu_id(user_id, message_id)
         except Exception as err:
             method_name = sys._getframe().f_code.co_name
 
@@ -718,25 +711,26 @@ class Model:
             proffesional_staff = 0
             middle_staff = 0
             new_staff = 0
-            _, req_id, title, client_id, location, date_starts, date_ends, guests, event_type_id, event_class_id, _ = self.db_handler.get_event_request_extended_info_by_id(event_id)
+
+            req_id, _, client_id, title, location, date_starts, date_ends, guests, event_type_id, event_class_id, _ = self.db_handler.get_event_request_extended_info_by_id(event_id)
             _, event_class_name, guests_per_waiter = self.db_handler.get_event_class_by_id(event_class_id)
 
             distance_in_km = self.get_geopy_distance(location)
             price = distance_in_km * float(self.get_config_value('PRICE_OF_KM'))
             num_of_staff = math.ceil(guests / guests_per_waiter)
 
-            if event_class_name == 'найвищий':  #85% of pro
+            if event_class_name == 'Найвищий':  #85% of pro
                 new_staff = 0
                 proffesional_staff = math.ceil(num_of_staff * 0.85)
                 middle_staff = num_of_staff - proffesional_staff
-            elif event_class_name == 'високий':     #75% of pro
+            elif event_class_name == 'Високий':     #75% of pro
                 new_staff = 0
                 proffesional_staff = math.ceil(num_of_staff * 0.75)
                 middle_staff = num_of_staff - proffesional_staff
-            elif event_class_name == 'середній':
+            elif event_class_name == 'Середній':
                 new_staff = round(num_of_staff * 0.2)
                 middle_staff = num_of_staff - new_staff
-            elif event_class_name == 'початковий':
+            elif event_class_name == 'Початковий':
                 middle_staff = math.ceil(num_of_staff * 0.3)
                 new_staff = round(num_of_staff - middle_staff)
 
@@ -778,17 +772,10 @@ class Model:
             self.notifier.notify_about_price_changing(event_id)
 
             self.update_event_request_processed(event_id, processed_staff_id)
-            currencies = self.db_handler.get_currencies()
-            currency_id = 0
 
-            for id, name in currencies:
-                if name == currency:
-                    currency_id = id
-                    break
+            shift_id = self.db_handler.get_shift_id_by_event_id(event_id)[0]
 
-            shift_id = self.db_handler.get_event_id_from_shift(event_id)
-
-            self.db_handler.update_event_price_and_staff(event_id, price, currency_id, int(pro)+int(mid)+int(beginers))
+            self.db_handler.update_event_price_and_staff(event_id, price, int(pro)+int(mid)+int(beginers))
             self.logger.write_to_log('event data updated with price, currency and staff number', 'model')
 
             if shift_id is None:
@@ -987,7 +974,7 @@ class Model:
             self.logger.write_to_log('exception', 'model')
             self.logger.write_to_err_log(f'exception in method {method_name} - {err}', 'model')
 
-    def get_available_shift_for_staff(self, staff_id, staff_qualification_id):
+    def get_available_shift_for_staff(self, staff_id):
         """
         Checks if there's shifts available for staff
         :param staff_id: telegram id of staff
@@ -999,7 +986,7 @@ class Model:
 
             staff = self.db_handler.get_staff_by_id(staff_id)
             shifts = self.db_handler.get_upcoming_shifts()
-            _, quali_name = self.db_handler.get_qualification_by_id(staff_qualification_id)
+            staff_qualification_id, quali_name = self.db_handler.get_staff_qualification_by_id(staff_id)
 
             available_shifts = []
 
@@ -1009,17 +996,17 @@ class Model:
                 staff_needed = 0
                 staff_current_quali_registered = 0
 
-                if quali_name == 'професіонал':
+                if quali_name == 'Професіонал':
                     if shift[2] == 0:
                         continue
                     else:
                         staff_needed = shift[2]
-                elif quali_name == 'середній рівень':
+                elif quali_name == 'Середній рівень':
                     if shift[3] ==0:
                         continue
                     else:
                         staff_needed = shift[3]
-                elif quali_name == 'початківець':
+                elif quali_name == 'Початківець':
                     if shift[4] == 0:
                         continue
                     else:
@@ -1233,7 +1220,7 @@ class Model:
             diff = dates[3] - date
             shift_reg = self.db_handler.get_shift_registration_by_shift_reg_id(shift_reg_id)
 
-            if diff.days <= 0 and diff.seconds >= 0:
+            if diff.days < 0 and diff.seconds >= 0:
                 res = True
 
                 if shift_reg[6] is not None:
@@ -1337,7 +1324,7 @@ class Model:
             shift_reg = self.db_handler.get_shift_registration_by_staff_id_and_shift_id(staff_id, shift_id)
 
             on_shift = shift_reg[6] - shift_reg[5]
-            payment = ((on_shift.days * 24) + (on_shift.seconds / 3600)) * float(staff[10])
+            payment = ((on_shift.days * 24) + (on_shift.seconds / 3600)) * float(staff[9])
             payment += round((payment / 100) * (float(shift_reg[7]) * 3), 2)    # bonus for rating
 
             self.db_handler.set_payment_for_shift(shift_id, staff_id, payment)
@@ -1488,8 +1475,8 @@ class Model:
         :return: string with manager version of information about string
         """
         try:
-            _, _, pro, mid, beg, supervisor_id, _, _, _, _, _, _, _, _, price, curr_id  = self.db_handler.get_shift_extended_info_by_id(shift_id)
-            curr_name = [x[1] for x in self.db_handler.get_currencies() if x[0] == curr_id][0]
+            _, _, pro, mid, beg, supervisor_id, _, _, _, _, _, _, _, _, price  = self.db_handler.get_shift_extended_info_by_id(shift_id)
+            curr_name = 'грн.'
             shift_registrations = self.db_handler.get_shift_registrations_by_shift_id(shift_id)
 
             res = f'На зміну було зареєстровано:\n' \
@@ -1715,7 +1702,7 @@ class Model:
             staff = self.get_staff_by_id(staff_id)
             report = self.get_staff_financial_report_for_month(staff_id, period)
             report_with_headers = [headers]
-            sum_for_month = sum([x[6] for x in report])
+            sum_for_month = sum([x[6] for x in report if x[6] is not None])
 
             for rep in report:
                 report_with_headers.append(rep)
@@ -1799,7 +1786,8 @@ class Model:
             event_info = self.get_shift_extended_info_by_id(shift[0])
 
             for sh_reg in shift_info:
-                sum_to_pay += float(sh_reg[6])
+                if sh_reg[6] is not None:
+                    sum_to_pay += float(sh_reg[6])
 
             msg = f'назва події: {event_info[6]}\n' \
                   f'id зміни: {str(shift[0])}\n' \
@@ -1880,12 +1868,12 @@ class Model:
                 for sh_reg in shift[1]:
                     staff_ext = self.get_staff_by_id(sh_reg[1])
                     temp_staff = [staff_ext[3], staff_ext[1], staff_ext[2],
-                                  self.get_role_by_id(staff_ext[4])[1],
-                                  self.get_qualification_by_id(staff_ext[5])[1],
+                                  self.db_handler.get_staff_role_by_id(staff_ext[0])[1],
+                                  self.db_handler.get_staff_qualification_by_id(staff_ext[0])[1],
                                   sh_reg[3], sh_reg[4], (sh_reg[4] - sh_reg[3]), sh_reg[5],
                                   sh_reg[6]]
-
-                    overall_outcome += float(sh_reg[6])
+                    if sh_reg[6] is not None:
+                        overall_outcome += float(sh_reg[6])
                     staff_info.append(temp_staff)
 
                 res.append((shift_info, staff_headers, staff_info, (overall_outcome, float(shift_ext[14]) - overall_outcome)))
@@ -2122,7 +2110,7 @@ class Model:
         :return: list of manager staff info
         """
         try:
-            role_id = [x[0] for x in self.db_handler.get_roles_list() if x[1] == 'менеджер'][0]
+            role_id = [x[0] for x in self.db_handler.get_roles_list() if x[1] == 'Менеджер'][0]
             staff_by_role = self.db_handler.get_all_staff_by_role_id(role_id)
 
             self.logger.write_to_log('managers list got', 'model')
@@ -2136,10 +2124,9 @@ class Model:
 
     def get_user_qualification_by_id(self, staff_id):
         try:
-            staff = self.db_handler.get_staff_by_id(staff_id)
-            qualification = self.get_qualification_by_id(staff[5])[1]
+            qualification_name = self.db_handler.get_staff_qualification_by_id(staff_id)[1]
 
-            return qualification
+            return qualification_name
         except Exception as err:
             method_name = sys._getframe().f_code.co_name
 
