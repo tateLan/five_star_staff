@@ -1317,8 +1317,8 @@ class DbHandler:
         role_id = args[0][0]
 
         q = f'select * ' \
-            f'from staff left join role_confirmation rc on staff.role_confirmation_id = rc.role_confirmation_id' \
-            f' where rc.role_id={role_id};'
+            f'from staff left join role_confirmation rc on staff.role_confirmation_id = rc.role_confirmation_id ' \
+            f'where rc.role_id={role_id} and confirmed=1;'
 
         self.curs.execute(q)
 

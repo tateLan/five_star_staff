@@ -7,16 +7,17 @@ from telebot import types
 from log_handler import LogHandler
 import notifier as nt
 from emoji import emojize
+from socket_handler import SocketHandler
 import sys
 from time_tracker import TimeTracker
 import time
 
 
 bot = telebot.TeleBot(config.TOKEN)
-
 notifier = nt.Notifier(bot)
 logger = LogHandler(notifier)
-model = md.Model(bot, logger, notifier)
+sock_handler = SocketHandler(logger)
+model = md.Model(logger, notifier, sock_handler)
 
 location_update_queue = {}
 title_update_queue = {}
@@ -47,7 +48,7 @@ def init_controller():
 
         time_tracker = TimeTracker(model)
         time_tracker.setDaemon(True)
-        # time_tracker.start()
+        time_tracker.start()
 
         bot.polling(none_stop=True)
     except Exception as err:

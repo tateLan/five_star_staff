@@ -13,7 +13,7 @@ from setuptools.command.setopt import setopt
 
 
 class Model:
-    def __init__(self, bot, logger, notifier):
+    def __init__(self, logger, notifier, sock_handler):
         """
         Initialization of Model class
         :param bot: bot instance for passing into notifier class
@@ -21,9 +21,9 @@ class Model:
         """
         try:
             self.db_handler = db.DbHandler()
-            self.bot = bot
             self.logger = logger
             self.notifier = notifier
+            self.sock_handler = sock_handler
             logger.write_to_log('model initialised', 'sys')
         except Exception as err:
             method_name = sys._getframe().f_code.co_name
@@ -773,11 +773,10 @@ class Model:
 
             self.update_event_request_processed(event_id, processed_staff_id)
 
-            shift_id = self.db_handler.get_shift_id_by_event_id(event_id)[0]
-
             self.db_handler.update_event_price_and_staff(event_id, price, int(pro)+int(mid)+int(beginers))
             self.logger.write_to_log('event data updated with price, currency and staff number', 'model')
 
+            shift_id = self.db_handler.get_shift_id_by_event_id(event_id)
             if shift_id is None:
                 self.create_shift(event_id, int(pro), int(mid), int(beginers))
             else:
