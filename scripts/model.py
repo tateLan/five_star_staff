@@ -537,15 +537,16 @@ class Model:
             self.logger.write_to_log('exception', 'model')
             self.logger.write_to_err_log(f'exception in method {method_name} - {err}', 'model')
 
-    def get_unaccepted_event_requests(self):
+    def get_unaccepted_event_requests(self, staff_id):
         """
         Returns list of unaccepted event requests
+        :param staff_id: staff telegram id
         :return:list of unaccepted event requests
         """
         try:
             self.logger.write_to_log('requested events unaccepted request', 'model')
 
-            event_requests = self.db_handler.get_unaccepted_events_list()
+            event_requests = self.db_handler.get_unaccepted_events_list(staff_id)
 
             return event_requests
         except Exception as err:
@@ -554,12 +555,13 @@ class Model:
             self.logger.write_to_log('exception', 'model')
             self.logger.write_to_err_log(f'exception in method {method_name} - {err}', 'model')
 
-    def get_unaccepted_event_requests_count(self):
+    def get_unaccepted_event_requests_count(self, staff_id):
         """
         Returns count of unaccepted event requests
+        :param staff_id: staff telegram id
         :return: count of unaccepted event requests
         """
-        return self.get_unaccepted_event_requests().__len__()
+        return self.get_unaccepted_event_requests(staff_id).__len__()
 
     def get_client_by_id(self, client_id):
         try:
@@ -776,7 +778,7 @@ class Model:
             self.db_handler.update_event_price_and_staff(event_id, price, int(pro)+int(mid)+int(beginers))
             self.logger.write_to_log('event data updated with price, currency and staff number', 'model')
 
-            shift_id = self.db_handler.get_shift_id_by_event_id(event_id)
+            shift_id = self.db_handler.get_shift_id_by_event_id(event_id)[0]
             if shift_id is None:
                 self.create_shift(event_id, int(pro), int(mid), int(beginers))
             else:
@@ -2142,6 +2144,40 @@ class Model:
             self.logger.write_to_log('config data requested', 'model')
 
             return self.db_handler.get_config_value(key)[0]
+        except Exception as err:
+            method_name = sys._getframe().f_code.co_name
+
+            self.logger.write_to_log('exception', 'model')
+            self.logger.write_to_err_log(f'exception in method {method_name} - {err}', 'model')
+
+    def get_manager_with_least_processed_events_generator(self):
+        """
+        Returns generator, which returns sets of information about manager,
+        to create notification about created event request
+        :return: generator which returns values (managers left, manager id)
+        """
+        try:
+            managers = self.db_handler.get_manager_with_least_processed_events()
+
+            for manager in managers:
+                self.logger.write_to_log(f'returned manager for notification', 'model')
+                yield (len(managers) - managers.index(manager)) - 1, manager[0]
+        except Exception as err:
+            method_name = sys._getframe().f_code.co_name
+
+            self.logger.write_to_log('exception', 'model')
+            self.logger.write_to_err_log(f'exception in method {method_name} - {err}', 'model')
+
+    def set_event_request_as_in_progress_of_processing(self, staff_id, event_request_id):
+        """
+        Sets event request 'processed' field to '-2' what means, that request is in progress, but isn't processed yet
+        :param staff_id: staff telegram id
+        :param event_request_id: event request id
+        :return:None
+        """
+        try:
+            self.db_handler.update_event_request_status_in_process_of_accepting(staff_id, event_request_id)
+            self.logger.write_to_log(f'event request id status was updated', 'model')
         except Exception as err:
             method_name = sys._getframe().f_code.co_name
 

@@ -11,6 +11,7 @@ from socket_handler import SocketHandler
 import sys
 from time_tracker import TimeTracker
 import time
+import _thread
 
 
 bot = telebot.TeleBot(config.TOKEN)
@@ -755,7 +756,6 @@ def confirm_event_requests_handler(call):
                               message_id=call.message.message_id,
                               text=msg,
                               reply_markup=inline_kb)
-
     except Exception as err:
         method_name = sys._getframe( ).f_code.co_name
 
@@ -2429,6 +2429,84 @@ def get_manager_waiter_excel_financial_report_id_handler(call):
         logger.write_to_err_log(f'exception in method {method_name} - {err}', 'controller')
 
 
+def update_menu_to_not_relevant_data(staff_id):
+    """
+    Edits menu message, to send new message with relevant information
+    :param staff_id: staff telegram id
+    :return: None
+    """
+    try:
+        menu_id = model.get_staff_main_menu_msg_id(staff_id)
+        msg = f'{emojize(" :scream:", use_aliases=True)}Дана інформація застаріла, ' \
+              f'ви отримаєте нове повідомлення з актуальною)'
+
+        bot.edit_message_text(chat_id=staff_id,
+                              message_id=menu_id,
+                              text=msg)
+    except Exception as err:
+            method_name = sys._getframe().f_code.co_name
+            logger.write_to_log('exception', 'controller')
+            logger.write_to_err_log(f'exception in method {method_name} - {err}', 'controller')
+
+
+# socket command handlers
+
+
+def notify_about_event_request():
+    """
+    Method which tracks if manager can process clients event request, and if not, sends next invitation.
+    Executes in its own thread
+    :return: None
+    """
+    try:
+        managers_generator = model.get_manager_with_least_processed_events_generator()
+        TIME_TO_SLEEP = int(model.get_config_value('EVENT_REQUEST_NOTIFICATION_RATE_SECS'))
+
+        while True:
+            try:
+                managers_left, manager_id = next(managers_generator)
+
+                if len(model.get_unaccepted_event_requests(manager_id)) == 0:
+                    break
+
+                msg = f''
+                inline_kb = types.InlineKeyboardMarkup()
+                update_menu_to_not_relevant_data(manager_id)
+
+                if managers_left > 0:
+                    msg = f'{emojize(" :collision:", use_aliases=True)}Клієнт зареєстрував нову заявку на обслуговування події.\n ' \
+                          f'Ви отримуєте це сповіщення персонально, перейдіть в додаток, ' \
+                          f'та опрацюйте заявку, або відмовтесь від неї'
+                    accept_request = types.InlineKeyboardButton(text=f'{emojize(" :white_check_mark:", use_aliases=True)}Опрацювати',
+                                                                callback_data=f'confirm_event_requests')
+                    decline_request = types.InlineKeyboardButton(text=f'{emojize(" :negative_squared_cross_mark:", use_aliases=True)}Відмовитись',
+                                                                 callback_data=f'main_menu')
+                    inline_kb.row(accept_request, decline_request)
+                else:
+                    msg = f'{emojize(" :collision:", use_aliases=True)}Клієнт зареєстрував нову заявку на обслуговування події. ' \
+                          f'Ви отримуєте це сповіщення персонально, та є останньою надією галактики{emojize(" :fireworks:",use_aliases=True)}\n ' \
+                          f'Будь ласка, перейдіть в додаток, та опрацюйте заявку{emojize(" :pray:", use_aliases=True)}'
+                    accept_request = types.InlineKeyboardButton(
+                        text=f'{emojize(" :white_check_mark:", use_aliases=True)}Опрацювати',
+                        callback_data=f'confirm_event_requests')
+                    inline_kb.row(accept_request)
+
+                bot.send_message(chat_id=manager_id,
+                                 text=msg,
+                                 reply_markup=inline_kb)
+                time.sleep(TIME_TO_SLEEP)
+            except StopIteration:
+                break
+    except Exception as err:
+        method_name = sys._getframe().f_code.co_name
+
+        logger.write_to_log('exception', 'controller')
+        logger.write_to_err_log(f'exception in method {method_name} - {err}', 'controller')
+
+
+# socket command handlers end
+
+
 def get_event_title(message):
     try:
         event_id = title_update_queue.pop(message.chat.id)
@@ -2621,7 +2699,7 @@ def show_main_menu(message, user_role, edit=False):
         elif user_role == 'Менеджер':
             logger.write_to_log('requested manager menu', message.chat.id)
             staff_pending_requests = model.get_unaccepted_request_count()
-            event_pending_requests = model.get_unaccepted_event_requests_count()
+            event_pending_requests = model.get_unaccepted_event_requests_count(message.chat.id)
             upcoming_events = model.get_upcoming_events()
             upcoming_shifts = model.get_upcoming_shifts()
 

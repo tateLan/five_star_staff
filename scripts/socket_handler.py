@@ -51,8 +51,8 @@ class SocketHandler():
             msg = msg.split('-')
 
             if msg[0] == 'event_registered':
-                pass
-            elif msg[0] == 'feedback_updated': #-event_id
+                _thread.start_new_thread(controller.notify_about_event_request, ())   # !!ATTENTION!! if one event request is currently processing, it won't work
+            elif msg[0] == 'feedback_updated': # -event_id
                 pass
             # TODO: add some cross-bot interacting commands
         except Exception as err:

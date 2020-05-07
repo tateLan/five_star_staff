@@ -552,12 +552,18 @@ class DbHandler:
         return (datetime.now() - self.session_time_alive).seconds
 
     @check_session_time_alive
-    def get_unaccepted_events_list(self):
+    def get_unaccepted_events_list(self, *args):
         """
-        Returns list of unaccepted event requests
+        Returns list of unaccepted event requests.
+        there's processed status check about '-2' value, cuz it supposed to be check if
+        request currently processing, but it's not implemented (yet)
         :return: list of unaccepted event requests
         """
-        q = 'select * from event_request where processed = 0;'
+        staff_id = args[0][0]
+
+        q = f'select * ' \
+            f'from event_request ' \
+            f'where processed = 0 or (processed=-2 and staff_processed={staff_id});'
 
         self.curs.execute(q)
         return self.curs.fetchall()
@@ -1334,4 +1340,26 @@ class DbHandler:
 
         return self.curs.fetchone()
 
+    @check_session_time_alive
+    def get_manager_with_least_processed_events(self):
 
+        # in rc.role_id = 2, 2 is manager role id
+
+        q = f"select staff_id, count(staff_processed) as 'count_processed' " \
+            f"from (event_request er right join staff st on er.staff_processed=st.staff_id) " \
+            f"left join role_confirmation rc on rc.role_confirmation_id=st.role_confirmation_id " \
+            f"where rc.role_id=2 " \
+            f"group by staff_id " \
+            f"order by count_processed asc "
+
+        self.curs.execute(q)
+        return self.curs.fetchall()
+
+    @check_session_time_alive
+    def update_event_request_status_in_process_of_accepting(self, *args):
+        staff, ev_req_id = args[0][0]
+
+        q = f'update event_request set processed=-2, staff_processed={staff} where event_request_id={ev_req_id};'
+
+        self.curs.execute(q)
+        self.connect.commit()
