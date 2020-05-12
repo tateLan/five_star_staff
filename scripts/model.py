@@ -778,11 +778,14 @@ class Model:
             self.db_handler.update_event_price_and_staff(event_id, price, int(pro)+int(mid)+int(beginers))
             self.logger.write_to_log('event data updated with price, currency and staff number', 'model')
 
-            shift_id = self.db_handler.get_shift_id_by_event_id(event_id)[0]
+            shift_id = self.db_handler.get_shift_id_by_event_id(event_id)
             if shift_id is None:
-                self.create_shift(event_id, int(pro), int(mid), int(beginers))
+                self.create_shift(event_id[0], int(pro), int(mid), int(beginers))
             else:
-                self.update_shift(shift_id, int(pro), int(mid), int(beginers))
+                self.update_shift(shift_id[0], int(pro), int(mid), int(beginers))
+
+            client_id = self.db_handler.get_client_id_by_event_id(event_id)[0]
+            self.sock_handler.send_socket_command(f'price_changed-{client_id}-{event_id}')
         except Exception as err:
             method_name = sys._getframe().f_code.co_name
 

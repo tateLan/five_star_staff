@@ -1363,3 +1363,16 @@ class DbHandler:
 
         self.curs.execute(q)
         self.connect.commit()
+
+    @check_session_time_alive
+    def get_client_id_by_event_id(self, *args):
+        event_id = args[0][0]
+
+        q = f'select cl.client_id ' \
+            f'from (client cl left join event_request er on cl.client_id = er.client_id) ' \
+            f'left join event ev on ev.event_request_id=er.event_request_id ' \
+            f'where ev.event_id = {event_id}'
+
+        self.curs.execute(q)
+        return self.curs.fetchone()
+
