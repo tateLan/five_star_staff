@@ -17,11 +17,11 @@ class DbHandler:
             database='five_star',
             auth_plugin='mysql_native_password'
         )
+        print('connecting to db.......', end='')
         self.curs = self.connect.cursor(buffered=True)
 
         self.session_time_alive = datetime.now()
-
-        print('db connected successfully!')
+        print('OK!')
 
     def check_session_time_alive(func):
         """

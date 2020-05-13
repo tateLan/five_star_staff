@@ -780,7 +780,7 @@ class Model:
 
             shift_id = self.db_handler.get_shift_id_by_event_id(event_id)
             if shift_id is None:
-                self.create_shift(event_id[0], int(pro), int(mid), int(beginers))
+                self.create_shift(event_id, int(pro), int(mid), int(beginers))
             else:
                 self.update_shift(shift_id[0], int(pro), int(mid), int(beginers))
 
@@ -894,7 +894,7 @@ class Model:
 
             self.logger.write_to_log('event status got', 'model')
 
-            return bool(res)
+            return bool(res[0])
         except Exception as err:
             method_name = sys._getframe().f_code.co_name
 
@@ -2181,6 +2181,27 @@ class Model:
         try:
             self.db_handler.update_event_request_status_in_process_of_accepting(staff_id, event_request_id)
             self.logger.write_to_log(f'event request id status was updated', 'model')
+        except Exception as err:
+            method_name = sys._getframe().f_code.co_name
+
+            self.logger.write_to_log('exception', 'model')
+            self.logger.write_to_err_log(f'exception in method {method_name} - {err}', 'model')
+
+    def is_price_required_data_filled(self, event_id):
+        """
+        Checks if data needed to price calculation is entered (location, number of guests,
+        type of event, event class). title and dates is guaranteed by client bot
+        :param event_id: event id
+        :return: True, if requirements satisfied, False if not
+        """
+        try:
+            event = self.db_handler.get_event_request_extended_info_by_id(event_id)
+            self.logger.write_to_log(f'event data to classify if price can be calculated got', 'model')
+
+            if event[5] is not None and event[8] is not None and event[9] is not None and event[10] is not None:
+                return True
+            else:
+                return False
         except Exception as err:
             method_name = sys._getframe().f_code.co_name
 

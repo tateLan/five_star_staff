@@ -7,20 +7,22 @@ import _thread
 class SocketHandler():
     def __init__(self, logger):
         try:
+            self.logger = logger
+
             self.port = 1512
             self.packet_size = 2048
 
             self.sock = socket.socket()
+            print(f'connecting to socket server.......', end='')
             self.sock.connect(('localhost', self.port))
-            print(f'connected to socket server')
+            print('OK!')
             _thread.start_new_thread(self.check_incoming_commands, ())
 
-            self.logger = logger
         except KeyboardInterrupt:
             self.sock.close()
             exit(0)
         except ConnectionRefusedError:
-            print('socket isn\'t connected: connection refused')
+            print('FAILED: connection refused')
 
     def check_incoming_commands(self):
         """
