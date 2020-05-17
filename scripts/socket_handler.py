@@ -1,6 +1,7 @@
 import controller
 import socket
 import sys
+from termcolor import colored
 import _thread
 
 
@@ -13,16 +14,16 @@ class SocketHandler():
             self.packet_size = 2048
 
             self.sock = socket.socket()
-            print(f'connecting to socket server.......', end='')
+            print(f'connecting to socket server ... ', end='')
             self.sock.connect(('localhost', self.port))
-            print('OK!')
+            print(colored('OK!', 'green'))
             _thread.start_new_thread(self.check_incoming_commands, ())
 
         except KeyboardInterrupt:
             self.sock.close()
             exit(0)
         except ConnectionRefusedError:
-            print('FAILED: connection refused')
+            print(colored('FAILED: connection refused', 'red'))
 
     def check_incoming_commands(self):
         """
@@ -55,7 +56,7 @@ class SocketHandler():
             if msg[0] == 'event_registered':
                 _thread.start_new_thread(controller.notify_about_event_request, ())   # !!ATTENTION!! if one event request is currently processing, it won't work
             elif msg[0] == 'feedback_updated': # -event_id
-                pass
+                _thread.start_new_thread(controller.notify_about_feedback_update, (msg[1],))
             # TODO: add some cross-bot interacting commands
         except Exception as err:
             method_name = sys._getframe().f_code.co_name

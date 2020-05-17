@@ -775,6 +775,8 @@ class Model:
 
             self.update_event_request_processed(event_id, processed_staff_id)
 
+            old_price = self.db_handler.get_event_price(event_id)
+
             self.db_handler.update_event_price_and_staff(event_id, price, int(pro)+int(mid)+int(beginers))
             self.logger.write_to_log('event data updated with price, currency and staff number', 'model')
 
@@ -784,8 +786,14 @@ class Model:
             else:
                 self.update_shift(shift_id[0], int(pro), int(mid), int(beginers))
 
-            client_id = self.db_handler.get_client_id_by_event_id(event_id)[0]
-            self.sock_handler.send_socket_command(f'price_changed-{client_id}-{event_id}')
+            if old_price[0] is None:
+                client_id = self.db_handler.get_client_id_by_event_id(event_id)[0]
+                self.sock_handler.send_socket_command(f'price_changed-{client_id}-{event_id}')
+            else:
+                if int(float(old_price[0])) != int(float(price)):  # to delete signs after comma
+                    client_id = self.db_handler.get_client_id_by_event_id(event_id)[0]
+                    self.sock_handler.send_socket_command(f'price_changed-{client_id}-{event_id}')
+
         except Exception as err:
             method_name = sys._getframe().f_code.co_name
 
@@ -1193,7 +1201,7 @@ class Model:
             shift_registration = self.db_handler.get_event_date_by_shift_registration_id_and_staff_id(shift_reg_id, staff_id)
 
             if shift_registration is not None:
-                event_data = self.db_handler.get_shift_extended_info_by_id(shift_registration[0])
+                event_data = self.db_handler.get_shift_extended_info_by_id(shift_registration[1])
 
                 if str(event_data[5]) == str(staff_id):
                     res = True
@@ -2202,6 +2210,65 @@ class Model:
                 return True
             else:
                 return False
+        except Exception as err:
+            method_name = sys._getframe().f_code.co_name
+
+            self.logger.write_to_log('exception', 'model')
+            self.logger.write_to_err_log(f'exception in method {method_name} - {err}', 'model')
+
+    def request_client_feedback(self, shift_id):
+        """
+        Requests event feedback from client, via socket, to client bot
+        :param shift_id: ended shift id
+        :return: None
+        """
+        try:
+            event_id = self.db_handler.get_shift_extended_info_by_id(shift_id)[1]
+            client_id = self.db_handler.get_client_id_by_event_id(event_id)[0]
+
+            self.sock_handler.send_socket_command(f'request_feedback-{client_id}-{event_id}')
+
+            self.logger.write_to_log(f'feedback was requested', 'model')
+        except Exception as err:
+            method_name = sys._getframe().f_code.co_name
+
+            self.logger.write_to_log('exception', 'model')
+            self.logger.write_to_err_log(f'exception in method {method_name} - {err}', 'model')
+
+    def feedback_update_handler(self, event_id):
+        """
+        Calculates supervisor's rating and payment after client set feedback for event
+        :param event_id:event id
+        :return:(staff telegram id to notify about feedback changes, shift id)
+        """
+        try:
+            shift_id = self.db_handler.get_shift_id_by_event_id(event_id)[0]
+            supervisor_id = self.get_shift_extended_info_by_id(shift_id)[5]
+            feedback = self.db_handler.get_event_feedback(event_id)[0]
+
+            self.db_handler.set_staff_rating_for_shift(supervisor_id, shift_id, feedback)
+            self.calculate_payment_for_shift(shift_id, supervisor_id)
+            self.update_staff_rating(supervisor_id)
+
+            self.logger.write_to_log(f'feedback update handled', 'model')
+            return supervisor_id, shift_id
+        except Exception as err:
+            method_name = sys._getframe().f_code.co_name
+
+            self.logger.write_to_log('exception', 'model')
+            self.logger.write_to_err_log(f'exception in method {method_name} - {err}', 'model')
+
+    def get_staff_rating_and_payment(self, staff_id, shift_id):
+        """
+        Gets staff rating and payment for shift by its id
+        :param staff_id: stall telegram id
+        :param shift_id: shift id
+        :return: (shift rating, shift payment)
+        """
+        try:
+            rating, payment = self.db_handler.get_staff_rating_and_payment_for_shift(staff_id, shift_id)
+            self.logger.write_to_log(f'staff rating and payment got', 'model')
+            return rating, payment
         except Exception as err:
             method_name = sys._getframe().f_code.co_name
 

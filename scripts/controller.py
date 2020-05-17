@@ -1785,6 +1785,7 @@ def end_overall_shift_handler(call):
 
         if result:
             msg = f'{emojize(":tada:", use_aliases=True)}Зміну було успішно закрито!'
+            model.request_client_feedback(shift_id)
         else:
             msg = f'Зміну не було закрито, оскільки у деяких працівників не було виставлено рейтинг. ' \
                   f'Перевірте дані, та спробуйте знову'
@@ -2448,6 +2449,33 @@ def update_menu_to_not_relevant_data(staff_id):
             logger.write_to_err_log(f'exception in method {method_name} - {err}', 'controller')
 
 
+@bot.callback_query_handler(func=lambda call: len(call.data.split('check_feedback_sh_id:')) > 1)
+def check_feedback_sh_id_handler(call):
+    try:
+        shift_id = int(call.data.split('check_feedback_sh_id:')[1])
+
+        rating, payment = model.get_staff_rating_and_payment(call.message.chat.id, shift_id)
+        msg = f'{emojize(" :high_brightness:", use_aliases=True)}Результати зміни id:{shift_id}\n' \
+              f'{"-" * 20}\n' \
+              f'{emojize(" :bar_chart:", use_aliases=True)}Рейтинг: *{rating}/5* \n' \
+              f'{emojize(" :credit_card:", use_aliases=True)}Платня: *{payment}*'
+        inline_kb = types.InlineKeyboardMarkup()
+
+        back = types.InlineKeyboardButton(text=f'{emojize(" :back:", use_aliases=True)}До меню', callback_data='main_menu')
+
+        inline_kb.row(back)
+
+        bot.edit_message_text(chat_id=call.message.chat.id,
+                              message_id=call.message.message_id,
+                              text=msg,
+                              parse_mode='Markdown',
+                              reply_markup=inline_kb)
+    except Exception as err:
+        method_name = sys._getframe().f_code.co_name
+        logger.write_to_log('exception', 'controller')
+        logger.write_to_err_log(f'exception in method {method_name} - {err}', 'controller')
+
+
 # socket command handlers
 
 
@@ -2502,6 +2530,33 @@ def notify_about_event_request():
         logger.write_to_log('exception', 'controller')
         logger.write_to_err_log(f'exception in method {method_name} - {err}', 'controller')
 
+
+def notify_about_feedback_update(event_id):
+    try:
+        staff_id, shift_id = model.feedback_update_handler(event_id)
+        update_menu_to_not_relevant_data(staff_id)
+
+        msg = f'{emojize(" :yum:",use_aliases=True)}За результатами відгуку, який залишив клієнт, вам нараховано рейтинг за зміну id:{shift_id}. ' \
+              f'Ви можете отримати інформацію про відгук за кнопкою нижче, або ж повернутись до меню'
+
+        inline_kb = types.InlineKeyboardMarkup()
+
+        check_fb = types.InlineKeyboardButton(text=f'{emojize(":bar_chart:", use_aliases=True)}Переглянути рейтинг', callback_data=f'check_feedback_sh_id:{shift_id}')
+        back_to_main = types.InlineKeyboardButton(text=f'{emojize(" :back:", use_aliases=True)}До меню',
+                                                  callback_data='main_menu')
+
+        inline_kb.row(check_fb)
+        inline_kb.row(back_to_main)
+
+        msg_id = bot.send_message(chat_id=staff_id,
+                                  text=msg,
+                                  reply_markup=inline_kb).message_id
+        model.update_staff_main_menu_id(staff_id, msg_id)
+    except Exception as err:
+        method_name = sys._getframe().f_code.co_name
+
+        logger.write_to_log('exception', 'controller')
+        logger.write_to_err_log(f'exception in method {method_name} - {err}', 'controller')
 
 # socket command handlers end
 

@@ -2,6 +2,7 @@ import mysql.connector
 import config
 from datetime import datetime
 import sys
+from termcolor import colored
 
 
 class DbHandler:
@@ -17,11 +18,11 @@ class DbHandler:
             database='five_star',
             auth_plugin='mysql_native_password'
         )
-        print('connecting to db.......', end='')
+        print('connecting to db ... ', end='')
         self.curs = self.connect.cursor(buffered=True)
 
         self.session_time_alive = datetime.now()
-        print('OK!')
+        print(colored('OK!', 'green'))
 
     def check_session_time_alive(func):
         """
@@ -1375,4 +1376,37 @@ class DbHandler:
 
         self.curs.execute(q)
         return self.curs.fetchone()
+
+    @check_session_time_alive
+    def get_event_price(self, *args):
+        event_id = args[0][0]
+
+        q = f'select price from event where event_id={event_id};'
+
+        self.curs.execute(q)
+
+        return self.curs.fetchone()
+
+    @check_session_time_alive
+    def get_event_feedback(self, *args):
+        event_id = args[0][0]
+
+        q = f'select feedback from event where event_id={event_id};'
+
+        self.curs.execute(q)
+        return self.curs.fetchone()
+
+    @check_session_time_alive
+    def get_staff_rating_and_payment_for_shift(self, *args):
+        staff_id, shift_id = args[0]
+
+        q = f'select rating, payment ' \
+            f'from shift_registration ' \
+            f'where staff_id={staff_id} and shift_id={shift_id};'
+
+        self.curs.execute(q)
+        return self.curs.fetchone()
+
+
+
 
